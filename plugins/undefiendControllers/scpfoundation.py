@@ -27,7 +27,7 @@ SCP 函数
 @author: Latingtude
 """
 
-scp_function = on_command("scp", aliases={""}, priority=10)
+scp_function = on_command("scp", aliases={}, priority=10)
 
 @scp_function.handle()
 async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, _args: Message = CommandArg()):
@@ -36,76 +36,141 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, _args: Me
     _msg = _args.extract_plain_text()
     args = _msg.strip().split(" ")
 
-    # SCP FOUNDATION IS FOR EVERYONE.
+    if args [0] == "" or args [0] == "help":
+        msg += "\n欢迎回到 SCiP TLoH Bot 终端。"
+        msg += "\n您想做什么？"
+        msg += "\n    - fetch <branch> <name> <type=故事|SCP>"
+        msg += "\n    - subscribe <wikidot page>"
+        msg += "\n(目前 fetch 功能仅支持 中文分部(cn) 英文分部(en) 旧日分部(od) 云分(cloud))"
+        msg += "\n其他功能 TLoH Bot 终端尚未支持。\n若需其他功能，请联系技术部门。"
+    
+    elif args [0] == "fetch":
+        await scp_function.send("稍等，正在为您调取数据库...")
+        br = args [1]
+        nm = args [2]
+        tp = args [3]
 
-    if len(args) == 0:
-        msg += "\n    Welcome to S.C.P. Foundation."
-        msg += "\n    You can use commands under:"
-        msg += "\n        - ^scp doc(document) [document id] [branch=en]"
-        msg += "\n    Now supports branches under:"
-        msg += "\n        - China (cn)"
-        msg += "\n        - English (en)"
-        msg += "\n        - Minecraft (mc)"
-        msg += "\n        - Cloud (cloud)"
-        await scp_function.finish(msg)
+        # 调用 api 致歉
+        branch_map = {
+            "cn": "http://scp-wiki-cn.wikidot.com",
+            "en": "http://scp-wiki.wikidot.com",
+            "od": "http://scp-wiki-od.wikidot.com",
+            "cloud": "http://scp-wiki-cloud.wikidot.com"
+        }
 
-    elif args [0] == "doc" or args [0] == "document":
-        # fetch scp website
-        branch = "en"
+        if br not in branch_map:
+            await scp_function.finish(
+                _error("未知分部。\n支持: cn / en / od / cloud")
+            )
 
-        if len(args) == 1:
-            msg += "    - 请输入文档编号。"
-            await scp_function.finish(msg)
+        search_keyword = nm
 
-        if len(args) == 2:
-            branch = "en"
-        else:
-            supportBranches = ["cn", "en", "mc", "cloud"]
-            # 中分，主站，麦分，云分
-            if args [2].lower() in supportBranches:
-                branch = args [2].lower()
-            else:
-                branch = "en"
-                msg += "    - 您所要检索的分支目前 TLoH Bot 不支持。\n    - 将默认使用 EN 编号查找。"
+        if tp == "故事":
+            search_keyword += " tale"
 
-        msg += f"\n    - 检索 SCP-{branch}-{args [1]}"
+        API_URL = (
+            "https://typesense.crom.avn.sh"
+            "/collections/pages/documents/search"
+        )
 
-        global scpurl
-        scpurl = ""
+        API_KEY = "JuNllePLZUdprXW99B2xQb6FMhjaDza5" # CROM 的开发者真的很对不起但是直接 request 文章会被 wikidot 的屎山 HTML 冲垮🙏🙏🙏
 
-        if branch == "cn":
-            scpurl = f"https://scp-wiki-cn.wikidot.com/scp-cn-{args [1]}"
-        elif branch == "en":
-            scpurl = f"https://scp-wiki.wikidot.com/scp-{args [1]}"
-        elif branch == "mc":
-            scpurl = f"https://scp-wiki-mc.wikidot.com/scp-mc-{args [1]}"
-        elif branch == "cloud":
-            scpurl = f"https://scp-wiki-cloud.wikidot.com/scp-cloud-{args [1]}"
+        params = {
+            "q": search_keyword,
+            "query_by":
+                "publicTitle,"
+                "alternateTitle,"
+                "textContent,"
+                "titleEmbedding",
 
-        # get page content
+            "page": 1,
+            "per_page": 5,
+            "search_cutoff_ms": 240,
+
+            "filter_by":
+                f"origin:={branch_map[br]}",
+
+            "include_fields":
+                "id,"
+                "url,"
+                "publicTitle,"
+                "alternateTitle,"
+                "textContent,"
+                "rating,"
+                "tags",
+
+            "highlight_fields":
+                "publicTitle,"
+                "alternateTitle,"
+                "textContent"
+        }
+
+        headers = {
+            "X-TYPESENSE-API-KEY": API_KEY
+        }
+
         try:
-            page = requests.get(scpurl).content.decode("gbk")
-            level = "safe"
+            r = requests.get(
+                API_URL,
+                params=params,
+                headers=headers,
+                timeout=10
+            )
 
-            if "euclid" in page or "Euclid" in page:
-                level = "euclid"
-            elif "keter" in page or "Keter" in page:
-                level = "keter"
+            r.raise_for_status()
 
-            _info(page)
+            data = r.json()
 
-            page = hi.fromstring(page)
+            hits = data.get("hits", [])
 
-            msg += f"\n    - 检索成功。"
-            msg += f"\n    - SCP 文档信息："
-            msg += f"\n        - 编号：SCP-{branch}-{args [1]}"
-            msg += f"\n        - 等级：{level}"
-            # get rate from class 'number'
-            msg += f"\n        - Rate: {page.xpath('//div[@class="number"]/text()')[0]}"
-            msg += f"\n        - 链接：{scpurl}"
-        except Exception as e:
-            msg += "\n    - 处理过程出现问题。"
-            _error(e.__str__())
+            if not hits:
+                await scp_function.finish(
+                    _info(f"未找到与 {nm} 相关的条目。")
+                )
+
+            msg = "检索完成。\n"
+
+            for index, hit in enumerate(hits[:3], start=1):
+                doc = hit.get("document", {})
+
+                title = (
+                    doc.get("publicTitle")
+                    or doc.get("title")
+                    or "未知标题"
+                )
+
+                url = doc.get("url", "")
+
+                rating = doc.get("rating", "N/A")
+
+                tags = doc.get("tags", [])
+
+                content = (
+                    doc.get("textContent", "")
+                    .replace("\n", " ")
+                    .replace("\r", "")
+                )
+
+                if len(content) > 150:
+                    content = content[:150] + "..."
+
+                msg += (
+                    f"\n[{index}] {title}"
+                    f"\n评分: {rating}"
+                    f"\n标签: {', '.join(tags[:8])}"
+                    f"\n链接: {url}"
+                    f"\n摘要: {content}"
+                    f"\n"
+                )
+
             await scp_function.finish(msg)
 
-        await scp_function.finish(msg)
+        except Exception as e:
+            await scp_function.finish(
+                _error(
+                    "检索失败。\n"
+                    f"{type(e).__name__}: {e}"
+                )
+            )
+            
+    await scp_function.finish(msg)

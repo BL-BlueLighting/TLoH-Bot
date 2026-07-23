@@ -102,6 +102,7 @@ pip install -r ./scripts/install/requirements.txt
 > 感谢以下项目，我参考了以下项目的部分代码。
 
 <a href="https://github.com/yzyyz1387/nonebot_plugin_admin/">NoneBot Plugin Admin</a>
+*致歉：引入了 SCP 基金会 TypeSense CROM 的 API Key，对其开发者致以歉意。若需要进行删除，请联系本人。*
 
 ## 警告
 

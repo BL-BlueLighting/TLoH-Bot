@@ -171,3 +171,9 @@ test.*
 
 *.ign
 *.ign.py
+
+*napcat*
+NapCat/*
+NapCat
+NapCat.Shell.zip
+napcat.sh
