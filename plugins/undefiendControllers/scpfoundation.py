@@ -54,13 +54,16 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, _args: Me
         branch_map = {
             "cn": "http://scp-wiki-cn.wikidot.com",
             "en": "http://scp-wiki.wikidot.com",
-            "od": "http://scp-wiki-od.wikidot.com",
-            "cloud": "http://scp-wiki-cloud.wikidot.com"
+            # "od": "http://scp-wiki-od.wikidot.com",
+            # "cloud": "http://scp-wiki-cloud.wikidot.com"
+            # 这俩没有接入 CROM，理论上所有接入 CROM 的 SCP 分部甚至 The Backrooms 都可以用这个 API 检索到
+            # 并且因为 RU 分部使用了 Wikijump (不是 Wikidot) 导致 CROM 无法检索。
+            # 其他分部比如法分、德分都可以查到，但是我懒得写
         }
 
         if br not in branch_map:
             await scp_function.finish(
-                _error("未知分部。\n支持: cn / en / od / cloud")
+                _error("未知分部。\n支持: cn / en。")
             )
 
         search_keyword = nm
@@ -162,8 +165,6 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, _args: Me
                     f"\n摘要: {content}"
                     f"\n"
                 )
-
-            await scp_function.finish(msg)
 
         except Exception as e:
             await scp_function.finish(

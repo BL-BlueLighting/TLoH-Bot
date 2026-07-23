@@ -32,6 +32,82 @@ userInfoController
 
 TITLE = "TLoH Bot"
 
+class EasyCallQQUserObject:
+    def __init__(self, user_info: dict):
+        self.user_info = user_info
+        self.userdata = user_info
+
+    def GetNick(self) -> str:
+        """获取用户昵称"""
+        return self.userdata.get("nick", "<Failed to Fetch>")
+
+    def GetPosition(self) -> str:
+        """获取用户地区"""
+        # 拼接
+        """   
+        "country": "中国",
+        "province": "贵州",
+        "city": "遵义",
+        """
+        return f"{self.userdata.get('country', '')} {self.userdata.get('province', '')}省{self.userdata.get('city', '')}市".strip()
+
+    def GetGender(self) -> str:
+        """获取用户性别"""
+        return self.userdata.get("sex", "male")
+    
+    def GetGenderChinese(self) -> str:
+        """获取用户性别（中文）"""
+        gender = self.GetGender()
+        if gender == "male":
+            return "男"
+        elif gender == "female":
+            return "女"
+
+    def GetVIPType(self) -> str:
+        """获取用户 VIP 类型"""
+        # qq vip 接口返回的是月度 vip 与年度 vip，分别使用 is_vip 与 is_year_vip 获取，均为 bool.
+        is_vip = self.userdata.get("is_vip", False)
+        is_year_vip = self.userdata.get("is_year_vip", False)
+        if is_vip and is_year_vip:
+            return "年度 VIP"
+        elif is_vip:
+            return "月度 VIP"
+        elif is_year_vip:
+            return "年度 VIP"
+        else:
+            return "非 VIP"
+
+class EasyCall:
+    def __init__(self, bot: Bot, event: GroupMessageEvent | PrivateMessageEvent):
+        self.bot = bot
+        self.event = event
+
+    async def GetInformationOfUser(self, user_id: str) -> dict:
+        """使用 Onebotv11 API 获取用户信息"""    
+        try:
+            user_info = await self.bot.get_stranger_info(user_id=user_id)
+            return user_info
+        except ActionFailed as e:
+            _error(f"获取用户信息失败: {e}")
+            return {}
+    
+    async def GetUserObject(self, user_id: str) -> EasyCallQQUserObject:
+        """获取 EasyCallQQUserObject 对象"""
+        user_info = await self.GetInformationOfUser(user_id)
+        return EasyCallQQUserObject(user_info)
+
+class Database:
+    # 这个 class 是后来加的，Data class 没用这个类
+    def __init__(self):
+        self.db_path = DATA_PATH / "userdata.db"
+
+    def run_sql(self, sql: str, params: tuple = ()):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            conn.commit()
+            return cursor.fetchall()
+
 class Data:
     def __init__(self, id: str):
         """
@@ -954,44 +1030,23 @@ list_eventer = on_command("moneybest", aliases={"排行榜"}, priority=5)
 async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = f"{TITLE} - 排行榜\n"
 
-    # 确保文件夹存在，避免 os.listdir 报错
-    data_path = DATA_PATH / "userdata" # 注意: 这里应该使用 userInfoController.Data 中定义的路径
-    if not os.path.exists(data_path):
-        await list_eventer.finish(msg + "    - 暂无数据可供排名。")
+    # fixing of new
+    # ('1145141919810', '', 0, '[]', 'false', '0', '{}') sample tuple of user
+    data = Database()
+    easyc = EasyCall(bot, event)
+    scores = data.run_sql("SELECT * FROM users ORDER BY Score DESC");
 
-    # 获取所有用户数据文件
-    # 原始代码使用了 './database'，但 User 类中是 './userdata'，这里已更正
-    user_files = os.listdir(data_path)
-
-    user_scores = {}
-    for filename in user_files:
-        # 确保只处理有效的用户数据文件，这里假设文件名格式是 "QQ号.toolsbot_data"
-        if filename.endswith(".toolsbot_data"):
-            user_id = filename.split(".")[0]
-            try:
-                # 实例化用户对象并获取分数
-                user = User(user_id)
-                if not user.isBanned(): # 更好的做法是只展示未被封禁的用户
-                    if user.name != "":
-                        user_scores[user.name] = user.getScore()
-                    else:
-                        user_scores[user.id] = user.getScore()
-            except Exception as e:
-                # 捕获可能的读取错误，比如文件损坏
-                print(f"Error reading user data for {user_id}: {e}")
-                continue
-
-    # 按分数降序排序，并保留前10名
-    sorted_scores = sorted(user_scores.items(), key=lambda item: item[1], reverse=True)[:10]
-
-    # 检查是否有数据
-    if not sorted_scores:
-        await list_eventer.finish(msg + "    - 暂无数据可供排名。")
-
-    # 格式化输出排行榜
-    for rank, (user_name, score) in enumerate(sorted_scores, 1):
-        msg += f"    - 第 {rank} 名：{user_name}，积分：{score:.2f}\n"
-
+    if not scores:
+        msg += "    - 当前没有用户数据"
+        await list_eventer.finish(msg)
+    
+    # get front 10 users
+    top_users = scores[:10]
+    num = 1
+    for user in top_users:
+        userObj = await easyc.GetUserObject(user[0])
+        msg += f"    - 用户昵称: {userObj.GetNick()} | 用户ID: {user[0]} | 积分: {user[2]:.2f}\n"
+        num += 1
     await list_eventer.finish(msg)
 
 """
