@@ -86,7 +86,7 @@ async def _(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent, args: Mess
             _msg = Message(MessageSegment.reply(event.message_id)) + Message(MessageSegment.at(event.user_id)) + MessageSegment.text(msg)
             await vme50.finish(_msg)
 
-vme50plus = on_message(priority=5)
+vme50plus = on_message(priority=100)
 @vme50plus.handle()
 async def _(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent, args: Message = CommandArg()):
     _info(f"收到消息: {event.get_plaintext()}")
@@ -104,3 +104,4 @@ async def _(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent, args: Mess
             # generate reply message
             _msg = Message(MessageSegment.reply(event.message_id)) + Message(MessageSegment.at(event.user_id)) + MessageSegment.text(msg)
             await vme50.finish(_msg)
+    vme50plus.skip()
