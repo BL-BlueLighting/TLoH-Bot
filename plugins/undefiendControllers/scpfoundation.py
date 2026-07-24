@@ -27,7 +27,7 @@ SCP 函数
 @author: BL-BlueLighting
 """
 
-scp_function = on_command("scp", aliases={}, priority=10)
+scp_function = on_command("scp", aliases={"scpf", "scpfoundation", "scip", "scipterminal"}, priority=10)
 
 @scp_function.handle()
 async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, _args: Message = CommandArg()):

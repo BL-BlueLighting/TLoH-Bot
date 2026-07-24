@@ -5,15 +5,16 @@ import random
 import re
 import sqlite3
 from collections import Counter
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
 import nonebot
 import requests
 import toml
 from nonebot import on_command
 from nonebot.adapters import Message
-from nonebot.adapters.onebot.v11 import (Bot, GroupMessageEvent,
+from nonebot.adapters.onebot.v11 import (GroupMessageEvent,
                                          PrivateMessageEvent)
+from nonebot.adapters.onebot.v11 import Bot as v11bot
 from nonebot.exception import ActionFailed
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
@@ -51,7 +52,7 @@ class EasyCallQQUserObject:
         """
         return f"{self.userdata.get('country', '')} {self.userdata.get('province', '')}省{self.userdata.get('city', '')}市".strip()
 
-    def GetGender(self) -> str:
+    def GetGender(self) -> Literal["male", "female"]:
         """获取用户性别"""
         return self.userdata.get("sex", "male")
     
@@ -62,6 +63,7 @@ class EasyCallQQUserObject:
             return "男"
         elif gender == "female":
             return "女"
+        return "沃尔玛塑料袋" # 不是除了男和女还能设置什么，qnmd pylance
 
     def GetVIPType(self) -> str:
         """获取用户 VIP 类型"""
@@ -78,14 +80,14 @@ class EasyCallQQUserObject:
             return "非 VIP"
 
 class EasyCall:
-    def __init__(self, bot: Bot, event: GroupMessageEvent | PrivateMessageEvent):
+    def __init__(self, bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent | None):
         self.bot = bot
         self.event = event
 
     async def GetInformationOfUser(self, user_id: str) -> dict:
         """使用 Onebotv11 API 获取用户信息"""    
         try:
-            user_info = await self.bot.get_stranger_info(user_id=user_id)
+            user_info = await self.bot.get_stranger_info(user_id=int(user_id))
             return user_info
         except ActionFailed as e:
             _error(f"获取用户信息失败: {e}")
@@ -119,6 +121,12 @@ class Data:
         self.id = id
         self.db_path = DATA_PATH / "userdata.db"
         self._init_db()
+
+    async def GetQQUserObject(self) -> EasyCallQQUserObject:
+        """获取 EasyCallQQUserObject 对象"""
+        bot: v11bot = nonebot.get_bot() #type:ignore
+        easy_call = EasyCall(bot, None)  # 这里的 event 填为 None，因为我们只需要 user_id
+        return await easy_call.GetUserObject(self.id)
 
     def _init_db(self):
         """初始化数据库和表结构"""
@@ -279,7 +287,7 @@ class User:
                 itemEffect = _item.get("Effect")
                 break
 
-        if item == "iai" or item == "棍母" or item == "滚木" or item == "BL.BlueLighting":
+        if item == "iai" or item == "棍母" or item == "滚木" or item == "BL.BlueLighting" or item == "小薯":
             itemEffect = ["spe "+item]
 
         #_info(f"物品：{item} 的效果：" + itemEffect [0]) #type: ignore
@@ -360,6 +368,8 @@ class User:
                 return "？请不要使用空白物品谢谢"
             elif "BL.BlueLighting" in itemEffect [0]:#type: ignore
                 return "芝士 Bot 主"
+            elif "小薯" in itemEffect [0]:#type: ignore
+                return "南边的桥梁。" 
             else:
                 return "???"
         else:
@@ -450,7 +460,7 @@ GetInfo 函数。
 getinfo_function = on_command("info", aliases={"获取账户信息"}, priority=10)
 
 @getinfo_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = TITLE + " 用户面板"
 
     try:
@@ -493,7 +503,7 @@ MORNING_DATA_PATH = DATA_PATH / "morningd.json"
 morningToday_function = on_command("morning", aliases={"早上好"}, priority=10)
 
 @morningToday_function.handle()
-async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = f"{TITLE} 签到\n"
     user_id_str = str(event.get_user_id()) # 确保用户ID是字符串
     current_user = User(user_id_str)
@@ -618,7 +628,7 @@ setinfo 函数 (管理员专用)
 setinfo_function = on_command("setinfo", priority=10, permission=SUPERUSER)
 
 @setinfo_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = TITLE + " 设置信息"
     _msg = args.extract_plain_text()
     try:
@@ -673,7 +683,7 @@ QQ 287280700 (GROUP)
 buy_function = on_command("buy", priority=10)
 
 @buy_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = TITLE + " 商店"
     user = User(event.get_user_id())
     _msg = args.extract_plain_text()
@@ -788,7 +798,7 @@ UseCode 函数
 code_function = on_command("usecode", aliases={"code"}, priority=10)
 
 @code_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = TITLE = " "
     user = User(event.get_user_id())
     msgr = args
@@ -834,7 +844,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 pay_eventer = on_command("pay", aliases={"交易", "向对方转钱"}, priority=5)
 
 @pay_eventer.handle()
-async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = f"{TITLE} 交易\n"
     _msg = args.extract_plain_text()
 
@@ -926,7 +936,7 @@ async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mess
 echo_eventer = on_command("echo", aliases={"说"}, priority=5)
 
 @echo_eventer.handle()
-async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     # 提取纯文本参数，并去除首尾空格
     _msg = args.extract_plain_text().strip()
 
@@ -981,7 +991,7 @@ async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mess
 wasteTaker_event = on_command("cleanwaste", aliases={"捡垃圾"}, priority=5)
 
 @wasteTaker_event.handle()
-async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     # 统一的随机概率列表
     # 映射关系更清晰，避免使用 index()
     # 属性： (名称, 金额)
@@ -1027,7 +1037,7 @@ async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mess
 list_eventer = on_command("moneybest", aliases={"排行榜"}, priority=5)
 
 @list_eventer.handle()
-async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = f"{TITLE} - 排行榜\n"
 
     # fixing of new
@@ -1059,7 +1069,7 @@ ban 函数
 ban_function = on_command("ban", priority=10, permission=SUPERUSER)
 
 @ban_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()): # 备注:我问你,私聊哪来的at
+async def _ (bot: v11bot, event: GroupMessageEvent, args: Message = CommandArg()): # 备注:我问你,私聊哪来的at
     msg = f"{TITLE} 管理系统"
     ats = At(event.json())
 
@@ -1091,7 +1101,7 @@ Pardon 函数
 pardon_function = on_command("pardon", priority=10, permission=SUPERUSER)
 
 @pardon_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = f"{TITLE} 管理系统"
     ats = At(event.json())
 
@@ -1122,7 +1132,7 @@ BanList 函数
 banlist_function = on_command("banlist", priority=10) # 普通用户也可以看 banlist
 
 @banlist_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = f"{TITLE} 管理系统"
 
     # users
@@ -1150,7 +1160,7 @@ AccountStatus 函数
 accountstatus_function = on_command("accountstatus", aliases={"accountStatus"}, priority=10)
 
 @accountstatus_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = f"{TITLE} 当前账号情况"
     at = At(event.json())
 
@@ -1187,7 +1197,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 redpacket_function = on_command("redpacket", aliases={"发红包"}, priority=5)
 
 @redpacket_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = f"{TITLE} - 发红包"
     user = User(event.get_user_id())
 
@@ -1280,7 +1290,7 @@ openredpacket 函数
 openredpacket_function = on_command("openredpacket", aliases={"抢红包"}, priority=5)
 
 @openredpacket_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = f"{TITLE} - 抢红包"
     user = User(event.get_user_id())
 
@@ -1347,7 +1357,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 fuck_eventer = on_command("fuck")
 
 @fuck_eventer.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     # use api
     try:
         await bot.call_api("send_private_msg", user_id=event.user_id, message="You ****ed " + args.extract_plain_text())
@@ -1366,7 +1376,7 @@ modifyname 函数
 modifyname_function = on_command("modifyname", priority=10)
 
 @modifyname_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = TITLE + " Modify Name"
     user = User(event.get_user_id())
     _msg = args.extract_plain_text()
@@ -1389,7 +1399,7 @@ bag 函数
 bag_function = on_command("bag", aliases=set(), priority=10)
 
 @bag_function.handle()
-async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     user = User(event.get_user_id())
 
     msg = "\nTLoH Bot 背包"
@@ -1416,11 +1426,11 @@ browsingbottle 函数
 browsingbottle_function = on_command("browsingbottle", priority=10)
 
 @browsingbottle_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
+async def _ (bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
     msg = TITLE + " 漂流瓶 BROWSING BOTTLE"
     user = User(event.get_user_id())
     _msg = args.extract_plain_text()
-
+    _content = []
     _arg = _msg.split(" ")[0]
     if len(msg.split(" ")) != 1:
         _content = _msg.split(" ")[1:]
@@ -1500,7 +1510,7 @@ Voting 函数
 voting_function = on_command("voting", priority=10)
 
 @voting_function.handle()
-async def _voting_function (bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()): # 备注: 你都投票了还用什么私聊啊
+async def _voting_function (bot: v11bot, event: GroupMessageEvent, args: Message = CommandArg()): # 备注: 你都投票了还用什么私聊啊
     msg = "TLoH Bot VOTING MODULE."
     user = User(event.get_user_id())
     _msg = args.extract_plain_text()
