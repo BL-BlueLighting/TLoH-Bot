@@ -23,7 +23,7 @@
 First, clone this project.
 
 `
-git clone https://github.com/Latingtude/RE-ToolsBot.git
+git clone https://github.com/BL-BlueLighting/RE-ToolsBot.git
 `
 
 Choose one of the following two actions

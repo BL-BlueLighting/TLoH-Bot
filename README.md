@@ -38,7 +38,7 @@
 先 git clone 下来整个项目。
 
 `
-git clone https://github.com/Latingtude/RE-ToolsBot.git
+git clone https://github.com/BL-BlueLighting/RE-ToolsBot.git
 `
 
 以下操作二选一

@@ -23,7 +23,7 @@ User = dc.User
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 finaleScopeController
 
@@ -36,7 +36,7 @@ TITLE = "TLoH Bot"
 scopes 函数
 
 查询目前的 Finale Scope 信息。
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 query_function = on_command("finaleScope", priority=10)
@@ -99,7 +99,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 unlockNext 函数
 
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 unlock_next_function = on_command("finaleScopeNext", priority=10)

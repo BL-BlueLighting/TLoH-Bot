@@ -13,7 +13,7 @@ from toolsbot.services import _error, _info
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 undefiendControllers.scpfoundation MODULE.
 SCP 基金会相关功能。
@@ -24,7 +24,7 @@ TITLE = "TLoH Bot"
 """
 SCP 函数
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 scp_function = on_command("scp", aliases={}, priority=10)

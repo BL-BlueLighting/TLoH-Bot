@@ -14,7 +14,7 @@ from toolsbot.configs import DATA_PATH
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 undefiendControllers.echoManager
 """
@@ -25,7 +25,7 @@ TITLE = "TLoH Bot"
 echotadd 函数
 
 添加关键词和文本，仅限 SUPERUSER.
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 echo_path = DATA_PATH / "echoThings.json"
@@ -56,7 +56,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 echotdel 函数
 
 删除关键词和文本，仅限 SUPERUSER.
-@author: Latingtude
+@author: BL-BlueLighting
 """
 echot_del_function = on_command("echotdel", aliases={"echoThingAdd"}, priority=10, permission=SUPERUSER)
 
@@ -83,7 +83,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 echot 函数
 
 输出关键词指定的文本
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 echot_function = on_command("echot", aliases = {"echoThing"},priority=10)

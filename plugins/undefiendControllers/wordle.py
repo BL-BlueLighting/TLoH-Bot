@@ -29,7 +29,7 @@ from plugins.userInfoController import User, At
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 undefiendControllers.wordle MODULE.
 Wordle 词汇

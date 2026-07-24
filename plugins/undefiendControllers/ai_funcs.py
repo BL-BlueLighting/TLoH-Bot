@@ -177,7 +177,7 @@ async def _ (bot:Bot, event: PrivateMessageEvent | GroupMessageEvent, arg: Messa
 AI 函数
 用于 AI 相关功能
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 ai_eventer = on_command("ai", aliases={"人工智能"}, priority=10)
 

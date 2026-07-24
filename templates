@@ -2,7 +2,7 @@
  函数
 
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 _function = on_command("", priority=10)

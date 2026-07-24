@@ -12,7 +12,7 @@ from plugins.userInfoController import User
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 undefiendControllers.sayNormaly
 """
@@ -23,7 +23,7 @@ TITLE = "TLoH Bot"
 saynormal 函数
 
 说人话
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 saynormal_function = on_command("saynormal", aliases={""}, priority=10)

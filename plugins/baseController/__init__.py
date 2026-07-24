@@ -14,7 +14,7 @@ import plugins.userInfoController as dc
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 baseController
 """

@@ -10,7 +10,7 @@ from . import mapInterpreter as mapi
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 gamingController
 """

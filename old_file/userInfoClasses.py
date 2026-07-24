@@ -20,7 +20,7 @@ _crit = logging.critical
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 userInfoClasses: userInfoController public api
 """

@@ -10,7 +10,7 @@ from toolsbot.services import _info
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 undefiendControllers.whathehell MODULE.
 What the hell 什么魔鬼
@@ -23,7 +23,7 @@ hell_funny = on_command("hellfunny", priority=5, block=True)
 zale = on_message(priority=100)
 @zale.handle()
 async def _(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent, args: Message = CommandArg()):
-    logger.log("INFO", "收到消息: " + event.get_plaintext())
+    _info(f"收到消息: {event.get_plaintext()}")
     if "咋了" in event.get_plaintext():
         await zale.finish("咋了")
     zale.skip()
@@ -67,10 +67,10 @@ async def handle_hell_funny(bot: Bot, event: GroupMessageEvent | PrivateMessageE
     if today.month == 2 and today.day == 8:
         await hell_funny.finish("RE: ToolsBot -> TLoH Bot")
 
-vme50 = on_message(priority=100)
+vme50 = on_command("vme50", aliases={"v50", "vivo50", "v我50", "VIVO50", "V我50", "V50", "微我五十", "微我50", "微我五十", "微我50元", "微我五十元"}, priority=5, block=True)
 @vme50.handle()
 async def _(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent, args: Message = CommandArg()):
-    logger.log("INFO", "收到消息: " + event.get_plaintext())
+    _info(f"收到消息: {event.get_plaintext()}")
     pt = event.get_plaintext()
     if "v" in pt.lower() and "50" in pt.lower():
         # 获取今天是星期几
@@ -85,4 +85,3 @@ async def _(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent, args: Mess
             # generate reply message
             _msg = Message(MessageSegment.reply(event.message_id)) + Message(MessageSegment.at(event.user_id)) + MessageSegment.text(msg)
             await vme50.finish(_msg)
-    vme50.skip()

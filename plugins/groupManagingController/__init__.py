@@ -670,7 +670,7 @@ async def _ (bot: nonebot.adapters.onebot.v11.Bot, event: GroupMessageEvent, arg
 Checking for otto mother.
 
 在 configuration.toml 中设置 "openOttoMother": true 来开启
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 # 棍母拼音对应的汉字集合

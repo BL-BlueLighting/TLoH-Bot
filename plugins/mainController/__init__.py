@@ -16,7 +16,7 @@ from nonebot.permission import SUPERUSER
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 mainController
 """
@@ -45,7 +45,7 @@ async def _(msg: Message = EventMessage(), matcher: Matcher = Matcher()):
 Help 函数
 用于基本的介绍
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 help_function = on_command("help", aliases={"帮助"}, priority=10)
 
@@ -60,7 +60,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent):
 check 函数
 检测 bot 是否存活
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 check_function = on_command("check", priority=10)
@@ -73,7 +73,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 ^ping & ^pong 函数
 和 bot 打乒乓球
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 ping_function = on_command("ping", priority=10)
 pong_function = on_command("pong", priority=10)
@@ -98,7 +98,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent):
 ^essence 函数
 设置精华消息
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 set_essence = on_command("essence", priority=5, permission=SUPERUSER)
 
@@ -121,7 +121,7 @@ async def _(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
 hitokoto 函数
 
 名言金句函數
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 goodsaying_function = on_command("hitokoto", priority=10)

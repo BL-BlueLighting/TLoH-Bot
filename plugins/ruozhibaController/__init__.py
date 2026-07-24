@@ -15,7 +15,7 @@ TITLE = "TLoH Bot"
 """
 弱智吧问题精选功能
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 QUESTION_FILE_PATH = DATA_PATH / "ruozhiba_question.json"

@@ -12,7 +12,7 @@ from plugins.userInfoController import TITLE, User
 """
 AES 加密解密功能
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 # --- AES 加密/解密函数 ---

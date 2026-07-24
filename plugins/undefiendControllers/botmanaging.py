@@ -14,7 +14,7 @@ from toolsbot.services import _warn
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 undefiendControllers.botmanaging MODULE.
 """

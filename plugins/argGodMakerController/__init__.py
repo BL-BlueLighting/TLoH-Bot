@@ -18,7 +18,7 @@ from toolsbot.configs import DATA_PATH
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 argGodMakerController
 """
@@ -274,7 +274,7 @@ def At(data: str):
 lcgodmaker 函数
 
 让我们修 ARG 仙。
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 lcgodmaker_function = on_command("lcgodmaker", priority=10)

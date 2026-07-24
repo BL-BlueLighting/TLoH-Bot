@@ -25,7 +25,7 @@ from toolsbot.services import _error, _info
 TLoH Bot
 Tools Bot 的第二版。
 
-@author: Latingtude
+@author: BL-BlueLighting
 
 userInfoController
 """
@@ -445,7 +445,7 @@ def At(data: str):
 GetInfo 函数。
 获取该账号 / 其他账号的数据
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 getinfo_function = on_command("info", aliases={"获取账户信息"}, priority=10)
 
@@ -483,7 +483,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 """
 每日签到功能
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 # 定义数据文件路径
@@ -612,7 +612,7 @@ async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mess
 setinfo 函数 (管理员专用)
 用于设置用户的各项信息 (乌萨奇行)
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 setinfo_function = on_command("setinfo", priority=10, permission=SUPERUSER)
@@ -659,7 +659,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 buy 函数
 购买和使用物品
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 """
@@ -782,7 +782,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 UseCode 函数
 兑换码，没几个人能拿得到的那种
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 code_function = on_command("usecode", aliases={"code"}, priority=10)
@@ -828,7 +828,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 """
 交易函数
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 pay_eventer = on_command("pay", aliases={"交易", "向对方转钱"}, priority=5)
@@ -920,7 +920,7 @@ async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mess
 """
 回声功能
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 echo_eventer = on_command("echo", aliases={"说"}, priority=5)
@@ -975,7 +975,7 @@ async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mess
 """
 捡垃圾功能
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 wasteTaker_event = on_command("cleanwaste", aliases={"捡垃圾"}, priority=5)
@@ -1021,7 +1021,7 @@ async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mess
 """
 排行榜功能
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 list_eventer = on_command("moneybest", aliases={"排行榜"}, priority=5)
@@ -1053,7 +1053,7 @@ async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mess
 ban 函数
 封禁用户
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 ban_function = on_command("ban", priority=10, permission=SUPERUSER)
@@ -1085,7 +1085,7 @@ async def _ (bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()): 
 Pardon 函数
 解除用户封禁
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 pardon_function = on_command("pardon", priority=10, permission=SUPERUSER)
@@ -1116,7 +1116,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 BanList 函数
 查看封禁用户列表
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 banlist_function = on_command("banlist", priority=10) # 普通用户也可以看 banlist
@@ -1144,7 +1144,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 AccountStatus 函数
 查看当前账号 / 其他账号是否被封禁
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 accountstatus_function = on_command("accountstatus", aliases={"accountStatus"}, priority=10)
@@ -1181,7 +1181,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 红包函数
 给群友发红包
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 redpacket_function = on_command("redpacket", aliases={"发红包"}, priority=5)
@@ -1274,7 +1274,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 openredpacket 函数
 抢红包
 
-@author: Copilot and Latingtude
+@author: Copilot and BL-BlueLighting
 """
 
 openredpacket_function = on_command("openredpacket", aliases={"抢红包"}, priority=5)
@@ -1360,7 +1360,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 modifyname 函数
 
 修改用户昵称
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 modifyname_function = on_command("modifyname", priority=10)
@@ -1383,7 +1383,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 bag 函数
 
 查看目前包里都有啥
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 bag_function = on_command("bag", aliases=set(), priority=10)
@@ -1410,7 +1410,7 @@ async def _(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mess
 browsingbottle 函数
 漂流瓶
 
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 browsingbottle_function = on_command("browsingbottle", priority=10)
@@ -1494,7 +1494,7 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
 Voting 函数
 
 创建投票
-@author: Latingtude
+@author: BL-BlueLighting
 """
 
 voting_function = on_command("voting", priority=10)
