@@ -22,13 +22,10 @@
 
 <hr/>
 
-> [!Note]
+> [!Warning]
 > 
-> (滑跪)
-> 因为该项目的屎山代码太多，且难以迁移至其他框架，
-> 所以目前该项目仍然不会停止维护。
->
-> 推荐各位配合 TLoH Bot 2 项目与本项目一起使用，提供全部的 TLoH Bot 功能。
+> TLoH Bot 更新了配置文件格式，此次更新前，请先备份您的旧版 `configuration.toml`，改为 `configuration.toml.toolsbot_data` (旧版存档数据)
+> ，来避免 git 认为您的 `configuration.toml` 属于更改，导致无法正常 `git pull`。更新完之后，请对照您的旧版 `configuration.toml` 对新版 `configuration.toml` 进行修改。
 
 > [!Warning]
 > 
