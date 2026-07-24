@@ -85,3 +85,22 @@ async def _(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent, args: Mess
             # generate reply message
             _msg = Message(MessageSegment.reply(event.message_id)) + Message(MessageSegment.at(event.user_id)) + MessageSegment.text(msg)
             await vme50.finish(_msg)
+
+vme50plus = on_message(priority=5)
+@vme50plus.handle()
+async def _(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent, args: Message = CommandArg()):
+    _info(f"收到消息: {event.get_plaintext()}")
+    pt = event.get_plaintext()
+    if "v" in pt.lower() and "50" in pt.lower():
+        # 获取今天是星期几
+        today = datetime.datetime.now().weekday() + 1
+        if today != 4:
+            msg = "今天不是星期四，不能发动技能喵"
+            # generate reply message
+            _msg = Message(MessageSegment.reply(event.message_id)) + Message(MessageSegment.at(event.user_id)) + MessageSegment.text(msg)
+            await vme50.finish(_msg)
+        else:
+            msg = "今天虽然是星期四但 bot 没钱喵"
+            # generate reply message
+            _msg = Message(MessageSegment.reply(event.message_id)) + Message(MessageSegment.at(event.user_id)) + MessageSegment.text(msg)
+            await vme50.finish(_msg)
