@@ -199,7 +199,7 @@ class TryEscapeUser:
         cursor.execute("SELECT * FROM escape_from_space_users WHERE user_id = ?", (self.uid,))
         if not cursor.fetchone():
             self.ExecuteSQL("INSERT INTO escape_from_space_users (user_id, escaped_count, now_where, level) VALUES (?, ?, ?, ?)", (self.uid, self.escaped_count, self.now_where, self.level))
-            self.ExecuteSQL("INSERT INFO escape_from_space_histories (user_id, history, history_talks) VALUES (?, ?)", (self.uid, self.histories.__str__(), self.history_talks.__str__()))
+            self.ExecuteSQL("INSERT INFO escape_from_space_histories (user_id, history, history_talks) VALUES (?, ?, ?)", (self.uid, self.histories.__str__(), self.history_talks.__str__()))
         else:
             # update data
             self.ExecuteSQL("UPDATE escape_from_space_users SET is_escaping = ?, escaped_count = ?, now_where = ?, level = ? WHERE user_id = ?", (self.is_escaping, self.escaped_count, self.now_where, self.level, self.uid))
