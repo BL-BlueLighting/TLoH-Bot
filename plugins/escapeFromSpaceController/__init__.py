@@ -96,7 +96,6 @@ async def _request_ai(session: aiohttp.ClientSession, content: str, system_conte
                 "content": content
             }
         ],
-        "max_tokens": 150,
         "response_format": {"type": "json_object"}
     }
 
@@ -323,7 +322,7 @@ class TryEscapeLogic:
             self.teu.histories.append(self.teu.now_where)
             self.teu.now_where = res["next_place_name"] # update place
 
-        result = res["content"]
+        result = res["content"] + "\n"
 
         cnum = 0
         for choice in list(res["options"]):
