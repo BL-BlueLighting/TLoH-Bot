@@ -325,7 +325,7 @@ class TryEscapeLogic:
             self.teu.histories.append(self.teu.now_where)
             self.teu.now_where = res["next_place_name"] # update place
 
-        result = res["content"] + "\n"
+        result: str = res["content"] + "\n"
 
         cnum = 0
         for choice in list(res["options"]):
@@ -364,7 +364,7 @@ class TryEscapeLogic:
 
         if False: # debugging contents
             result += "\n" + pre_prompt
-        await self.hdl.finish(result)
+        await self.hdl.finish(result.strip())
 
     def next_level(self):
         ec = self.teu.escaped_count
