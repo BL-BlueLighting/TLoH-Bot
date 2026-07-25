@@ -21,157 +21,123 @@ SCP 基金会相关功能。
 
 TITLE = "TLoH Bot"
 
-"""
-SCP 函数
+# CROM API configuration
+CROM_API_URL = "https://typesense.crom.avn.sh/collections/pages/documents/search"
+CROM_API_KEY = "JuNllePLZUdprXW99B2xQb6FMhjaDza5"
 
-@author: BL-BlueLighting
-"""
+BRANCH_MAP = {
+    "cn": "http://scp-wiki-cn.wikidot.com",
+    "en": "http://scp-wiki.wikidot.com",
+}
 
-scp_function = on_command("scp", aliases={"scpf", "scpfoundation", "scip", "scipterminal"}, priority=10)
+
+def _build_crom_search_params(search_keyword: str, branch_url: str) -> dict:
+    """Build search parameters for the CROM API."""
+    return {
+        "q": search_keyword,
+        "query_by": "publicTitle,alternateTitle,textContent,titleEmbedding",
+        "page": 1,
+        "per_page": 5,
+        "search_cutoff_ms": 240,
+        "filter_by": f"origin:={branch_url}",
+        "include_fields": "id,url,publicTitle,alternateTitle,textContent,rating,tags",
+        "highlight_fields": "publicTitle,alternateTitle,textContent"
+    }
+
+
+def _format_search_result(index: int, doc: dict) -> str:
+    """Format a single search result hit into a string."""
+    title = doc.get("publicTitle") or doc.get("title") or "未知标题"
+    url = doc.get("url", "")
+    rating = doc.get("rating", "N/A")
+    tags = doc.get("tags", [])
+    content = doc.get("textContent", "").replace("\n", " ").replace("\r", "")
+    if len(content) > 150:
+        content = content[:150] + "..."
+
+    return (
+        f"\n[{index}] {title}"
+        f"\n评分: {rating}"
+        f"\n标签: {', '.join(tags[:8])}"
+        f"\n链接: {url}"
+        f"\n摘要: {content}\n"
+    )
+
+
+async def _handle_fetch_command(branch: str, name: str, entry_type: str, handler) -> None:
+    """Handle the 'fetch' subcommand to search SCP entries."""
+    await handler.send("稍等，正在为您调取数据库...")
+
+    if branch not in BRANCH_MAP:
+        await handler.finish("未知分部。\n支持: cn / en。")
+        return
+
+    search_keyword = name
+    if entry_type == "故事":
+        search_keyword += " tale"
+
+    params = _build_crom_search_params(search_keyword, BRANCH_MAP[branch])
+    headers = {"X-TYPESENSE-API-KEY": CROM_API_KEY}
+
+    try:
+        response = requests.get(CROM_API_URL, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException as e:
+        _error(f"CROM API request failed: {e}")
+        await handler.finish("检索请求失败，请稍后再试。")
+        return
+    except json.JSONDecodeError as e:
+        _error(f"CROM API response parse failed: {e}")
+        await handler.finish("检索响应解析失败。")
+        return
+
+    hits = data.get("hits", [])
+    if not hits:
+        await handler.finish(_info(f"未找到与 {name} 相关的条目。"))
+        return
+
+    msg = "检索完成。\n"
+    for i, hit in enumerate(hits[:3], start=1):
+        doc = hit.get("document", {})
+        msg += _format_search_result(i, doc)
+
+    await handler.finish(msg)
+
+
+# =============================================================================
+# Main command handler
+# =============================================================================
+
+scp_function = on_command("scp", aliases={"scpf", "scpfoundation", "scip", "scipterminal"},
+                           priority=10)
+
 
 @scp_function.handle()
-async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, _args: Message = CommandArg()):
-    msg =  TITLE + " - SCP 基金会相关功能"
+async def handle_scp(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent,
+                      _args: Message = CommandArg()):
+    """SCP 基金会相关功能主处理器"""
+    msg = TITLE + " - SCP 基金会相关功能"
     user = uic.User(event.get_user_id())
     _msg = _args.extract_plain_text()
     args = _msg.strip().split(" ")
 
-    if args [0] == "" or args [0] == "help":
+    if not args or args[0] in ("", "help"):
         msg += "\n欢迎回到 SCiP TLoH Bot 终端。"
         msg += "\n您想做什么？"
         msg += "\n    - fetch <branch> <name> <type=故事|SCP>"
         msg += "\n    - subscribe <wikidot page>"
         msg += "\n(目前 fetch 功能仅支持 中文分部(cn) 英文分部(en) 旧日分部(od) 云分(cloud))"
         msg += "\n其他功能 TLoH Bot 终端尚未支持。\n若需其他功能，请联系技术部门。"
-    
-    elif args [0] == "fetch":
-        await scp_function.send("稍等，正在为您调取数据库...")
-        br = args [1]
-        nm = args [2]
-        tp = args [3]
+        await scp_function.finish(msg)
 
-        # 调用 api 致歉
-        branch_map = {
-            "cn": "http://scp-wiki-cn.wikidot.com",
-            "en": "http://scp-wiki.wikidot.com",
-            # "od": "http://scp-wiki-od.wikidot.com",
-            # "cloud": "http://scp-wiki-cloud.wikidot.com"
-            # 这俩没有接入 CROM，理论上所有接入 CROM 的 SCP 分部甚至 The Backrooms 都可以用这个 API 检索到
-            # 并且因为 RU 分部使用了 Wikijump (不是 Wikidot) 导致 CROM 无法检索。
-            # 其他分部比如法分、德分都可以查到，但是我懒得写
-        }
-
-        if br not in branch_map:
+    if args[0] == "fetch":
+        if len(args) < 4:
             await scp_function.finish(
-                _error("未知分部。\n支持: cn / en。")
+                "参数不足。\n使用方法: fetch <branch> <name> <type=故事|SCP>"
             )
+        await _handle_fetch_command(args[1], args[2], args[3], scp_function)
+    else:
+        msg += f"\n未知命令: {args[0]}\n使用 'help' 查看帮助。"
 
-        search_keyword = nm
-
-        if tp == "故事":
-            search_keyword += " tale"
-
-        API_URL = (
-            "https://typesense.crom.avn.sh"
-            "/collections/pages/documents/search"
-        )
-
-        API_KEY = "JuNllePLZUdprXW99B2xQb6FMhjaDza5" # CROM 的开发者真的很对不起但是直接 request 文章会被 wikidot 的屎山 HTML 冲垮🙏🙏🙏
-
-        params = {
-            "q": search_keyword,
-            "query_by":
-                "publicTitle,"
-                "alternateTitle,"
-                "textContent,"
-                "titleEmbedding",
-
-            "page": 1,
-            "per_page": 5,
-            "search_cutoff_ms": 240,
-
-            "filter_by":
-                f"origin:={branch_map[br]}",
-
-            "include_fields":
-                "id,"
-                "url,"
-                "publicTitle,"
-                "alternateTitle,"
-                "textContent,"
-                "rating,"
-                "tags",
-
-            "highlight_fields":
-                "publicTitle,"
-                "alternateTitle,"
-                "textContent"
-        }
-
-        headers = {
-            "X-TYPESENSE-API-KEY": API_KEY
-        }
-
-        try:
-            r = requests.get(
-                API_URL,
-                params=params,
-                headers=headers,
-                timeout=10
-            )
-
-            r.raise_for_status()
-
-            data = r.json()
-
-            hits = data.get("hits", [])
-
-            if not hits:
-                await scp_function.finish(
-                    _info(f"未找到与 {nm} 相关的条目。")
-                )
-
-            msg = "检索完成。\n"
-
-            for index, hit in enumerate(hits[:3], start=1):
-                doc = hit.get("document", {})
-
-                title = (
-                    doc.get("publicTitle")
-                    or doc.get("title")
-                    or "未知标题"
-                )
-
-                url = doc.get("url", "")
-
-                rating = doc.get("rating", "N/A")
-
-                tags = doc.get("tags", [])
-
-                content = (
-                    doc.get("textContent", "")
-                    .replace("\n", " ")
-                    .replace("\r", "")
-                )
-
-                if len(content) > 150:
-                    content = content[:150] + "..."
-
-                msg += (
-                    f"\n[{index}] {title}"
-                    f"\n评分: {rating}"
-                    f"\n标签: {', '.join(tags[:8])}"
-                    f"\n链接: {url}"
-                    f"\n摘要: {content}"
-                    f"\n"
-                )
-
-        except Exception as e:
-            await scp_function.finish(
-                _error(
-                    "检索失败。\n"
-                    f"{type(e).__name__}: {e}"
-                )
-            )
-            
     await scp_function.finish(msg)

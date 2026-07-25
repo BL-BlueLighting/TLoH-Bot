@@ -14,68 +14,70 @@ print("")
 _info = print
 _erro = print
 
-class Data:
-    def __init__(self, id: str):
-        """
-        Data Class.
 
-        Args:
-            id (str): Platform ID.
-        """
+class Data:
+    """Data access layer for migration (standalone version)."""
+
+    def __init__(self, id: str):
         self.id = id
         self.db_path = "./userdata.db"
         self._init_db()
 
     def _init_db(self):
         """初始化数据库和表结构"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    ID TEXT PRIMARY KEY,
-                    Name TEXT NOT NULL,
-                    Score INTEGER DEFAULT 0,
-                    boughtItems TEXT DEFAULT '[]',
-                    Ban TEXT DEFAULT '[]',
-                    Warningd TEXT DEFAULT '[]',
-                    DynamicExts TEXT DEFAULT '{}'
-                )
-            """)
-            conn.commit()
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        ID TEXT PRIMARY KEY,
+                        Name TEXT NOT NULL,
+                        Score INTEGER DEFAULT 0,
+                        boughtItems TEXT DEFAULT '[]',
+                        Ban TEXT DEFAULT '[]',
+                        Warningd TEXT DEFAULT '[]',
+                        DynamicExts TEXT DEFAULT '{}'
+                    )
+                """)
+                conn.commit()
+        except sqlite3.Error as e:
+            _erro(f"Failed to initialize database: {e}")
 
     def check(self) -> bool:
-        """
-        Check userdata exists.
-        """
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT 1 FROM users WHERE ID = ?", (self.id,))
-            return cursor.fetchone() is not None
+        """Check if userdata exists."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1 FROM users WHERE ID = ?", (self.id,))
+                return cursor.fetchone() is not None
+        except sqlite3.Error as e:
+            _erro(f"Database check failed: {e}")
+            return False
 
     def writeData(self, userClass):
-        """
-        Write user data.
-        Note: Because userClass is a user class, but user is defined after Data class.
-        So I will not add type tip to it.
-        """
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT OR REPLACE INTO users
-                (ID, Name, Score, boughtItems, Ban, Warningd, DynamicExts)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                userClass.id,
-                userClass.name,
-                userClass.score,
-                json.dumps(userClass.boughtItems),
-                json.dumps(userClass.banned),
-                json.dumps(userClass.warningd),
-                json.dumps(getattr(userClass, 'dynamicExts', {}))
-            ))
-            conn.commit()
+        """Write user data to database."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT OR REPLACE INTO users
+                    (ID, Name, Score, boughtItems, Ban, Warningd, DynamicExts)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    userClass.id,
+                    userClass.name,
+                    userClass.score,
+                    json.dumps(userClass.boughtItems),
+                    json.dumps(userClass.banned),
+                    json.dumps(userClass.warningd),
+                    json.dumps(getattr(userClass, 'dynamicExts', {}))
+                ))
+                conn.commit()
+        except sqlite3.Error as e:
+            _erro(f"Failed to write user data: {e}")
 
     def readData(self) -> Dict[str, Any]:
+        """Read user data from database."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -97,45 +99,29 @@ class Data:
                     "Warningd": int(row[5]),
                     "DynamicExts": json.loads(row[6])
                 }
-        except Exception as ex:
-            _erro("Error: Failed to read data.\nInformation: \n" + str(ex))
+        except (sqlite3.Error, json.JSONDecodeError) as ex:
+            _erro(f"Error: Failed to read data.\nInformation: \n{ex}")
             return {}
 
 
-"""
-User 类
-整个 userInfoController 的核心大类
-"""
-
-
 class User:
-    def __init__(self, id: str, name: str = "", score: float = 0, boughtItems: list[str] = []):
-        """
-        User Class
+    """User class for migration (standalone version)."""
 
-        Args:
-            id (str): Platform ID.
-            name (str, optional): Name of this user. Can be blank. Defaults to "".
-            score (int, optional): Score of this user. Default 0. Defaults to 0.
-            boughtItems (list[str], optional): BoughtItems. Use 'user.addItem' to add a item for this user. Defaults to [].
-        """
-
+    def __init__(self, id: str, name: str = "", score: float = 0,
+                 boughtItems: list = None):
         self.id = id
         self.name = name
         self.score = score
-        self.boughtItems = boughtItems
+        self.boughtItems = boughtItems if boughtItems is not None else []
         self.banned = False
         self.data = Data(self.id)
         self.warningd = 0
 
         try:
-            # check
             _info("Data Checking.")
             if self.data.check():
                 _info("Data Exists.")
                 self.jsonData = self.data.readData()
-
-                # load data from jsonData
                 self.id = self.jsonData.get("ID", "10000")
                 self.name = self.jsonData.get("Name", "暂未设置")
                 self.score = self.jsonData.get("Score", 0.0)
@@ -146,7 +132,7 @@ class User:
                 _info("Data Not Found.")
                 self.data.writeData(self)
         except Exception as ex:
-            _erro("Error: Failed to read or write data." + ex.__str__())
+            _erro(f"Error: Failed to read or write data. {ex}")
 
         if self.warningd >= 10:
             self.banned = True
@@ -156,123 +142,31 @@ class User:
             self.banned = True
 
     def save(self):
-        """
-        Save user data.
-        """
+        """Save user data."""
         self.data.writeData(self)
-        return
 
     def addItem(self, item: str):
-        """
-        Add item to user.
-        Args:
-            item (str): Item name.
-        """
+        """Add item to user's inventory."""
         self.boughtItems.append(item)
         self.save()
 
     def useItem(self, item: str) -> str:
-        """
-        Use a item from user.
-        Args:
-            item (str): Item name.
-        """
-        # load
-        with open("./data/item.json", "r", encoding="utf-8") as f:
-            itemJson: list[dict] = json.load(f)
-
-        itemEffect = ""
-        # fetch
-        for _item in itemJson:
-            if _item.get("Name", "") == item:
-                itemEffect = _item.get("Effect")
-                break
-
-        if item == "iai" or item == "棍母" or item == "滚木" or item == "BL.BlueLighting":
-            itemEffect = ["spe " + item]
-
-        # _info(f"物品：{item} 的效果：" + itemEffect [0]) #type: ignore
-
-        # interpret
-        """
-        sign = 签到
-        ticket = 彩票
-        """
-
+        """Use an item from inventory with effect handling."""
         if item not in self.boughtItems:
             return "你没有该物品。"
 
-        if itemEffect == "":
-            _rv = random.randint(1, 10)
-            if _rv > 5:
-                return "我们在瞎搞"
-            elif _rv > 7:
-                return "窝们在瞎搞"
-            elif _rv > 9:
-                return "窝们载瞎镐"
-            else:
-                return "求 iai 继续更新日期"
+        items_data = _safe_read_json("./data/item.json", [])
+        item_effect = _find_item_effect(items_data, item)
 
-        if "sign" in itemEffect[0]:  # type: ignore
-            _info(f"SIGN MODE")
-            # get *x
+        # Special override for certain items
+        special_items = ["iai", "棍母", "滚木", "BL.BlueLighting"]
+        if item in special_items:
+            item_effect = f"spe {item}"
 
-            _x = itemEffect[0].split(" ")[1]  # type: ignore
+        if not item_effect:
+            return _random_fallback()
 
-            # out x
-            _x = _x.replace("x", "")
-
-            # read boost
-            with open("./data/boostMorningd.json", "r", encoding="utf-8") as f:
-                boosts = json.load(f)
-
-            # append boost
-            boosts.append({self.id: int(_x)})
-
-            # write boost
-            with open("./data/boostMorningd.json", "w", encoding="utf-8") as f:
-                json.dump(boosts, f)
-
-            self.boughtItems.remove(item)
-            return f"{_x}x 倍票已使用。下次签到将会获得更多积分。"
-
-        elif "ticket" in itemEffect[0]:  # type: ignore
-            _info(f"TICKET MODE")
-            _randomNum = random.randint(1, 1000000000000)  # 人：傻逼
-            _randomMoney = random.randint(1, 100)
-            if _randomNum == 114514:
-                self.addScore(10000000000.0)
-                self.boughtItems.remove(item)
-                self.save()
-                return "中奖了。获得积分：100,0000,0000。"
-            else:
-                self.addScore(float(_randomMoney))
-                self.boughtItems.remove(item)
-                self.save()
-                return f"未中奖。但获得安慰奖 {_randomMoney}"
-
-        elif "playmode" in itemEffect[0]:  # type: ignore
-            if "enable" in itemEffect[0]:  # type: ignore
-                self.boughtItems.remove(item)
-                self.boughtItems.append("play")
-                self.save()
-                return "已启用娱乐模式。"
-            else:
-                if "play" in self.boughtItems:
-                    self.boughtItems.remove("play")
-                    self.save()
-                return "已关闭娱乐模式。"
-        elif "spe" in itemEffect[0]:  # type: ignore
-            if "iai" in itemEffect[0]:  # type: ignore
-                return "芝士 ARG 作者"
-            elif "棍母" or "滚木" in itemEffect[0]:  # type: ignore
-                return "？请不要使用空白物品谢谢"
-            elif "BL.BlueLighting" in itemEffect[0]:  # type: ignore
-                return "芝士 Bot 主"
-            else:
-                return "???"
-        else:
-            return "很抱歉。内部出现错误。"
+        return _apply_item_effect(self, item, item_effect)
 
     def aiWarningd(self):
         self.warningd += 1
@@ -281,71 +175,176 @@ class User:
         self.warningd += 2
 
     def addScore(self, score: float):
-        """
-        Add score to user.
-
-        Args:
-            score (float): Score.
-        """
-
         self.score += score
-        return
 
     def subtScore(self, score: float):
-        """
-        Subtract score.
-
-        Args:
-            score (float): _description_
-        """
         self.score -= score
-        return
 
     def getScore(self) -> float:
-        """
-        Get score from user
-        """
         return self.score
 
     def isBanned(self) -> bool:
-        """
-        Is this user banned?
-        """
-        return self.banned  # type: ignore
+        return self.banned
 
     def playMode(self) -> bool:
-        """
-        Is this user enabled play mode (娱乐模式 \\ 骂人模式？) ?
-        """
         return "play" in self.boughtItems
 
     def existsItem(self, item: str) -> bool:
-        """
-        Is this user has got this item?
-        """
         return item in self.boughtItems
 
-# begin
-enter = input("开始迁移？(y/N) ")
-if enter.lower() != "y":
-    print("迁移停止。")
-    exit()
 
-# get all userdata files
-_userdatas = os.listdir("./userdata")
+def _safe_read_json(filepath, default=None):
+    """Safely read a JSON file."""
+    if default is None:
+        default = {}
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError, OSError) as e:
+        _erro(f"Failed to read {filepath}: {e}")
+        return default
 
-for _userdata in _userdatas:
-    if _userdata.endswith(".toolsbot_data"):
-        oldUsr = dc.User(_userdata.replace(".toolsbot_data", ""))
-        newUsr = User(oldUsr.id)
 
-        # move
-        newUsr.score = oldUsr.score
-        newUsr.boughtItems = oldUsr.boughtItems
-        newUsr.name = oldUsr.name
-        newUsr.banned = oldUsr.banned
+def _find_item_effect(items_data: list, item_name: str) -> str:
+    """Find the effect string for an item."""
+    for entry in items_data:
+        if entry.get("Name", "") == item_name:
+            return entry.get("Effect", "")
+    return ""
 
-        newUsr.save()
-        print(f"迁移用户 '{oldUsr.id}' 的数据成功。")
 
-print("迁移完毕。")
+def _random_fallback() -> str:
+    """Generate a random fallback message for items with no effect defined."""
+    rv = random.randint(1, 10)
+    if rv > 5:
+        return "我们在瞎搞"
+    elif rv > 7:
+        return "窝们在瞎搞"
+    elif rv > 9:
+        return "窝们载瞎镐"
+    return "求 iai 继续更新日期"
+
+
+def _apply_item_effect(user: User, item: str, effect: str) -> str:
+    """Apply an item's effect and return the result message."""
+    effect_parts = effect.split(" ")
+
+    if "sign" in effect:
+        return _handle_sign_effect(user, item, effect_parts)
+    elif "ticket" in effect:
+        return _handle_ticket_effect(user, item)
+    elif "playmode" in effect:
+        return _handle_playmode_effect(user, item, effect_parts)
+    elif "spe" in effect:
+        return _handle_special_effect(effect)
+    return "很抱歉。内部出现错误。"
+
+
+def _handle_sign_effect(user: User, item: str, parts: list) -> str:
+    """Handle sign/签到 boost effect."""
+    _info("SIGN MODE")
+    try:
+        _x = parts[1].replace("x", "")
+        boost_val = int(_x)
+    except (IndexError, ValueError):
+        return "签到倍票数据损坏。"
+
+    boosts = _safe_read_json("./data/boostMorningd.json", [])
+    boosts.append({user.id: boost_val})
+    try:
+        with open("./data/boostMorningd.json", "w", encoding="utf-8") as f:
+            json.dump(boosts, f)
+    except OSError:
+        pass
+
+    if item in user.boughtItems:
+        user.boughtItems.remove(item)
+    return f"{_x}x 倍票已使用。下次签到将会获得更多积分。"
+
+
+def _handle_ticket_effect(user: User, item: str) -> str:
+    """Handle ticket/lottery effect."""
+    _info("TICKET MODE")
+    _randomNum = random.randint(1, 1000000000000)
+    _randomMoney = random.randint(1, 100)
+
+    if item in user.boughtItems:
+        user.boughtItems.remove(item)
+
+    if _randomNum == 114514:
+        user.addScore(10000000000.0)
+        user.save()
+        return "中奖了。获得积分：100,0000,0000。"
+    else:
+        user.addScore(float(_randomMoney))
+        user.save()
+        return f"未中奖。但获得安慰奖 {_randomMoney}"
+
+
+def _handle_playmode_effect(user: User, item: str, parts: list) -> str:
+    """Handle playmode toggle effect."""
+    if "enable" in parts[0]:
+        if item in user.boughtItems:
+            user.boughtItems.remove(item)
+        user.boughtItems.append("play")
+        user.save()
+        return "已启用娱乐模式。"
+    else:
+        if "play" in user.boughtItems:
+            user.boughtItems.remove("play")
+            user.save()
+        return "已关闭娱乐模式。"
+
+
+def _handle_special_effect(effect: str) -> str:
+    """Handle special name-based item effects."""
+    if "iai" in effect:
+        return "芝士 ARG 作者"
+    elif "滚木" in effect or "棍母" in effect:
+        return "？请不要使用空白物品谢谢"
+    elif "BL.BlueLighting" in effect:
+        return "芝士 Bot 主"
+    return "???"
+
+
+# =============================================================================
+# Migration entry point
+# =============================================================================
+
+def run_migration():
+    """Run the userdata migration from old format to SQLite."""
+    enter = input("开始迁移？(y/N) ")
+    if enter.lower() != "y":
+        print("迁移停止。")
+        return
+
+    try:
+        _userdatas = os.listdir("./userdata")
+    except OSError as e:
+        print(f"无法读取 userdata 目录: {e}")
+        return
+
+    migrated_count = 0
+    for filename in _userdatas:
+        if filename.endswith(".toolsbot_data"):
+            try:
+                clean_name = filename.replace(".toolsbot_data", "")
+                oldUsr = dc.User(clean_name)
+                newUsr = User(oldUsr.id)
+
+                newUsr.score = oldUsr.score
+                newUsr.boughtItems = oldUsr.boughtItems
+                newUsr.name = oldUsr.name
+                newUsr.banned = oldUsr.banned
+
+                newUsr.save()
+                print(f"迁移用户 '{oldUsr.id}' 的数据成功。")
+                migrated_count += 1
+            except Exception as e:
+                print(f"迁移用户 '{filename}' 失败: {e}")
+
+    print(f"迁移完毕。共迁移 {migrated_count} 个用户。")
+
+
+if __name__ == "__main__":
+    run_migration()
