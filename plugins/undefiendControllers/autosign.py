@@ -27,7 +27,7 @@ _info("自动签到插件加载成功。")
 @scheduler.scheduled_job("cron", hour=0, minute=0, second=0, id="autosign")
 async def _():
     try:
-        with open(DATA_PATH.joinpath("config.toml"), "r", encoding="utf-8") as f:
+        with open(DATA_PATH.joinpath("configuration.toml"), "r", encoding="utf-8") as f:
             config = toml.load(f)
         if config["EnableAutoSign"]:
             bot = nonebot.get_bot()

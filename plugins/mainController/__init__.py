@@ -82,7 +82,7 @@ COMMANDS_LIST = [
     ["hitokoto", "每日一言。"],
     ["zanwo", "给你个人资料点赞。"],
     ["vme50", "vivo 50."],
-    ["超级用户权限分界线", "============="],
+    ["超级用户权限分界线", "========"],
     ["ban", "参数:[@用户] 封禁用户。"],
     ["pardon", "参数:[@用户] 解禁用户。"],
     ["mute", "参数:[@用户(可多个)] minute=[时间] 禁言用户[时间]分钟。"],
@@ -95,7 +95,7 @@ COMMANDS_LIST = [
     ["broadcast", "参数:[(必须)广播内容] 广播消息。"],
     ["signnow", "在所有群签到。"],
     ["echot/echot_add/echot_del", "这些功能自己看，执行 ^echot 来查看相关介绍。"],
-    ["私聊可用分界线","============="],
+    ["私聊可用分界线","==========="],
     ["aitalkstart", "开始 AI 聊天。"],
     ["aiprompt", "设置 AI 提示词。"],
     ["aitalkstop", "停止 AI 聊天。"],
@@ -110,13 +110,13 @@ async def handle_help(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent):
     # 构建帮助文本
     help_lines = [
         "TLoH Bot - Help Menu",
-        "=" * 30,
+        "=" * 21, # 手机端可以占满整个消息框宽度
     ]
     
     # 添加命令列表
     if COMMANDS_LIST:
         for cmd, desc in COMMANDS_LIST:
-            if not desc == "=============":
+            if not "分界线" in cmd:
                 help_lines.append(f"^{cmd} - {desc}")
             else:
                 help_lines.append(f"\n{cmd} {desc}\n")
