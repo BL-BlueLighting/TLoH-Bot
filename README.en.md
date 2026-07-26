@@ -6,7 +6,7 @@
 
 <p align="center">
     <a href="#">
-        <img src="https://img.shields.io/badge/Version-1.4.0-blue">
+        <img src="https://img.shields.io/badge/Version-2.0.0-blue">
     </a>
     <a href="#">
         <img src="https://img.shields.io/badge/OneBot-v11-blue">
@@ -23,7 +23,7 @@
 First, clone this project.
 
 `
-git clone https://github.com/BL-BlueLighting/RE-ToolsBot.git
+git clone https://github.com/BL-BlueLighting/TLoH-Bot.git
 `
 
 Choose one of the following two actions
@@ -80,6 +80,10 @@ Then, in "Network Configuration" --> New --> WebSocket Client, fill in the name,
 > Thanks for project under. I used some code from them.
 
 <a href="https://github.com/yzyyz1387/nonebot_plugin_admin/">NoneBot Plugin Admin</a>
+
+*Sorry: Sorry to SCP CROM feature developer. I required a API Key for your typesense. Delete it if you contact me.*
+
+This project feature 'nbnhhsh' call <a href="https://github.com/itorr/nbnhhsh">itorr/nbnhhsh</a> api interface.
 
 ## Tips
 > [!Warning]

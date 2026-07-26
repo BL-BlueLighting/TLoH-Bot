@@ -7,7 +7,7 @@
 
 <p align="center">
     <a href="#">
-        <img src="https://img.shields.io/badge/Version-1.4.0-blue">
+        <img src="https://img.shields.io/badge/Version-2.0.0-blue">
     </a>
     <a href="#">
         <img src="https://img.shields.io/badge/OneBot-v11-blue">
@@ -35,7 +35,7 @@
 先 git clone 下来整个项目。
 
 `
-git clone https://github.com/BL-BlueLighting/RE-ToolsBot.git
+git clone https://github.com/BL-BlueLighting/TLoH-Bot.git
 `
 
 以下操作二选一
