@@ -38,7 +38,7 @@ TITLE = "TLoH Bot"
 # Helper: safe JSON file I/O
 # =============================================================================
 
-def _safe_read_json(filepath, default=None):
+def _safe_read_json(filepath, default=None) -> list | dict:
     """Safely read a JSON file, returning default on any error."""
     if default is None:
         default = {}
@@ -281,7 +281,7 @@ class _ItemEffectHandler:
             return "签到倍票数据损坏，请联系管理员。"
 
         boosts = _safe_read_json(DATA_PATH / "boostMorningd.json", [])
-        boosts.append({self.user.id: boost_value})
+        boosts.append({self.user.id: boost_value}) #type: ignore
         _safe_write_json(DATA_PATH / "boostMorningd.json", boosts)
 
         if self.item in self.user.boughtItems:
@@ -633,7 +633,7 @@ def _record_signin(user_id_str: str):
             break
 
     if not found:
-        records.append({"Id": user_id_str, "LastSignDate": today_str})
+        records.append({"Id": user_id_str, "LastSignDate": today_str})#type: ignore
 
     _safe_write_json(MORNING_DATA_PATH, records)
 
@@ -720,7 +720,7 @@ async def handle_buy(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent
         msg += "\n    - 使用 ^buy thing [物品名称] 来购买"
 
     elif arg_parts[0] == "thing":
-        msg = await _handle_buy_thing(user, arg_parts, items, msg)
+        msg = await _handle_buy_thing(user, arg_parts, items, msg)#type: ignore
 
     elif arg_parts[0] == "use":
         msg = await _handle_buy_use(user, arg_parts, msg)
@@ -850,15 +850,15 @@ async def handle_usecode(bot: v11bot, event: GroupMessageEvent | PrivateMessageE
 
     if code in present_codes:
         user = User(event.get_user_id())
-        user.addScore(int(present_codes[code]))
+        user.addScore(int(present_codes[code]))#type: ignore
         user.save()
         msg += "\n    - 兑换成功"
         msg += f"\n    - 当前用户积分: {user.getScore()}"
         msg += f"\n    - 兑换码: {code}"
-        msg += f"\n    - 兑换积分: {present_codes[code]}"
+        msg += f"\n    - 兑换积分: {present_codes[code]}"#type: ignore
 
-        del present_codes[code]
-        _safe_write_json(DATA_PATH / "codes.json", present_codes)
+        del present_codes[code]#type: ignore
+        _safe_write_json(DATA_PATH / "codes.json", present_codes)#type: ignore
     else:
         msg += "\n    - 兑换失败: 兑换码无效"
         msg += f"\n    - 兑换码: {code.replace(chr(10) + 'ToolsBot', '')}"
@@ -969,9 +969,9 @@ async def handle_echo(bot: v11bot, event: GroupMessageEvent | PrivateMessageEven
 
     # Load blocked words
     failed_words_data = _safe_read_json(DATA_PATH / "echoFailedWords.json", {})
-    failed_words_list = failed_words_data.get("chinese_keywords", [])
-    failed_regex_list = failed_words_data.get("regex_patterns", [])
-    failed_eng_list = failed_words_data.get("exact_matches", [])
+    failed_words_list = failed_words_data.get("chinese_keywords", [])#type: ignore
+    failed_regex_list = failed_words_data.get("regex_patterns", [])#type: ignore
+    failed_eng_list = failed_words_data.get("exact_matches", [])#type: ignore
 
     # Check content against blocked words
     for word in failed_words_list:
@@ -1282,7 +1282,7 @@ async def handle_redpacket(bot: v11bot, event: GroupMessageEvent | PrivateMessag
 
     redpacket_path = DATA_PATH / "redpackets.json"
     redpackets = _safe_read_json(redpacket_path, [])
-    redpackets.append(redpacket)
+    redpackets.append(redpacket)#type: ignore
     _safe_write_json(redpacket_path, redpackets)
 
     await redpacket_function.finish(msg)
@@ -1443,7 +1443,7 @@ async def handle_browsingbottle(bot: v11bot, event: GroupMessageEvent | PrivateM
 
         content = " ".join(content_parts)
         bottles = _safe_read_json(bottle_path, [])
-        bottles.append({"UserID": user.id, "Content": content})
+        bottles.append({"UserID": user.id, "Content": content})#type: ignore
         _safe_write_json(bottle_path, bottles)
         msg += "\n    - 你扔下了一个漂流瓶。"
         await browsingbottle_function.finish(msg)
@@ -1494,15 +1494,15 @@ async def handle_voting(bot: v11bot, event: GroupMessageEvent,
     params = arg_parts[1:]
 
     if action == "create":
-        msg = await _voting_create(user, params, vote_data, vote_path, msg)
+        msg = await _voting_create(user, params, vote_data, vote_path, msg)#type: ignore
     elif action == "list":
-        msg = await _voting_list(vote_data, msg)
+        msg = await _voting_list(vote_data, msg)#type: ignore
     elif action == "status":
-        msg = await _voting_status(params, vote_data, msg)
+        msg = await _voting_status(params, vote_data, msg)#type: ignore
     elif action == "help":
         msg += _VOTING_HELP_TEXT
     elif action == "vote":
-        msg = await _voting_vote(bot, event, user, params, vote_data, vote_path, msg)
+        msg = await _voting_vote(bot, event, user, params, vote_data, vote_path, msg)#type: ignore
     else:
         msg += "    - 使用 ^voting help 来查看帮助。"
 
