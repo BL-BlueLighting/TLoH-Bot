@@ -110,7 +110,7 @@ async def handle_help(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent):
     # 构建帮助文本
     help_lines = [
         "TLoH Bot - Help Menu",
-        "=" * 21, # 手机端可以占满整个消息框宽度
+        "=" * 20, # 手机端可以占满整个消息框宽度
     ]
     
     # 添加命令列表
@@ -123,7 +123,7 @@ async def handle_help(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent):
     else:
         help_lines.append("暂无可用命令")
     
-    help_lines.append("=" * 30)
+    help_lines.append("=" * 20)
     help_lines.append("发送 ^help 查看此菜单")
     
     help_text = "\n".join(help_lines)
