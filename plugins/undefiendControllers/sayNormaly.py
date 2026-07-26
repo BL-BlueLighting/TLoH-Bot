@@ -112,12 +112,19 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
     if _arg [0] == "submit":
         if len(_arg) < 2:
             await saynormal_function.finish(msg + "\n    - 请输入你要提交的 缩写 与 完整名称")
-        await _handle_request("submitTrans", f"{_arg [0]},{_arg[1]}")
+        await _handle_request("submitTrans", f"{_arg [1]},{_arg[2]}")
         await saynormal_function.finish(msg + "\n    - 您的词条提交成功！当词条审核通过后将可以被查询。")
     else:
+        if len(_arg) < 1:
+            await saynormal_function.finish(msg + "\n    - 请使用 ^srh/^nbnhhsh/^saynormal <词条名> 来进行查询。")
         result = await _handle_request("guess", _arg [0])
         trans = result ["trans"]
-        msg += f"\n    - 查询到 {len(trans)} 个词条。"
-        for tran in trans:
-            msg += f"\n    - {tran}"
-        await defines.send_fake_forward_msg(bot, event, msg)
+        if len(trans) <= 0:
+            msg += "\n    - 该缩写暂没有完整名称。\n    - 使用 ^srh submit <缩写> <完整名称> 来提交一个词条。"
+        else:
+            msg += f"\n    - 查询到 {len(trans)} 个词条。"
+            for tran in trans:
+                msg += f"\n    - {tran}"
+            msg += "\n    - 使用 ^srh submit <缩写> <完整名称> 来提交一个词条。"
+            await defines.send_fake_forward_msg(bot, event, msg)
+            await saynormal_function.finish()
