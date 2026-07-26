@@ -332,6 +332,13 @@ class _ItemEffectHandler:
             return "南边的桥梁。"
         return "???"
 
+"""
+TLoH Bot
+PILLAR OF SHAME
+QQ 3829537708
+QQ 3562258276
+QQ 287280700 (GROUP)
+"""
 
 # =============================================================================
 # User class
@@ -520,7 +527,7 @@ async def handle_getinfo(bot: v11bot, event: GroupMessageEvent | PrivateMessageE
         msg += f"\n   - 用户积分：{target_user.score}"
     else:
         if user.playMode():
-            msg += "\n   - 你他妈被封禁了还来玩？滚"
+            msg += "\n   - 您他妈被封禁了还来玩？滚"
         else:
             msg += "\n   - 您的账号已被封禁，请联系管理员解封。"
 
@@ -547,7 +554,7 @@ async def handle_morning(bot: v11bot, event: GroupMessageEvent | PrivateMessageE
 
     if current_user.isBanned():
         if current_user.playMode():
-            msg += "    - 你他妈被封禁了还来签到？滚"
+            msg += "    - 您他妈被封禁了还来签到？滚"
         else:
             msg += "    - 您的账号已被封禁，请联系管理员解封。"
         await morningToday_function.finish(msg)
@@ -558,7 +565,7 @@ async def handle_morning(bot: v11bot, event: GroupMessageEvent | PrivateMessageE
     # Check sign-in status
     if _has_signed_in_today(user_id_str):
         if current_user.playMode():
-            msg += "    - 你他妈掉钱眼子里了？今天已经签到过了，明天再来！"
+            msg += "    - 您他妈掉钱眼子里了？今天已经签到过了，明天再来！"
         else:
             msg += "    - 您今天已经签到过了，请明天再来！"
         await morningToday_function.finish(msg)
@@ -737,7 +744,7 @@ async def _handle_buy_thing(user: User, arg_parts: list, items: list, msg: str) 
     elif len(arg_parts) == 1:
         fail_msg = "购买失败，原因：请填写物品名称"
         if user.playMode():
-            fail_msg = "购买失败，原因：你他妈填名字没有就来买？"
+            fail_msg = "购买失败，原因：您他妈填名字没有就来买？"
         msg += f"\n    - {fail_msg}"
         return msg
 
@@ -756,7 +763,7 @@ async def _handle_buy_thing(user: User, arg_parts: list, items: list, msg: str) 
     if qty >= 100:
         fail_msg = "交付失败，原因：购买数量过大。"
         if user.playMode():
-            fail_msg = "交付失败，原因：购买数量过大。你他妈买这么多干啥？"
+            fail_msg = "交付失败，原因：购买数量过大。您他妈买这么多干啥？"
         msg += f"\n    - {fail_msg}"
         return msg
 
@@ -767,10 +774,10 @@ async def _handle_buy_thing(user: User, arg_parts: list, items: list, msg: str) 
             cost = item.get("Cost", 0.114514)
             break
 
-    if cost == 0.114514:
+    if cost == 0.114514 and False: # disable
         fail_msg = "交付失败，原因：该商品不存在。"
         if user.playMode():
-            fail_msg = "交付失败，原因：该商品不存在。你他妈买个寂寞？"
+            fail_msg = "交付失败，原因：该商品不存在。您他妈买个寂寞？"
         msg += f"\n    - {fail_msg}"
         return msg
 
@@ -788,7 +795,7 @@ async def _handle_buy_thing(user: User, arg_parts: list, items: list, msg: str) 
     else:
         fail_msg = "交付失败，原因：余额不足"
         if user.playMode():
-            fail_msg = "交付失败，原因：余额不足。你他妈穷成这样还想买东西？"
+            fail_msg = "交付失败，原因：余额不足。您他妈穷成这样还想买东西？"
         msg += f"\n    - {fail_msg}"
 
     msg += f"\n    - 购买结束。请使用 ^buy use {item_name} {qty} 来使用商品。"
@@ -800,7 +807,7 @@ async def _handle_buy_use(user: User, arg_parts: list, msg: str) -> str:
     if len(arg_parts) == 1:
         fail_msg = "请填写物品"
         if user.playMode():
-            fail_msg = "使用失败，原因：你他妈填名字没有就来用？"
+            fail_msg = "使用失败，原因：您他妈填名字没有就来用？"
         msg += f"\n    - {fail_msg}"
         return msg
     elif len(arg_parts) == 2:
@@ -886,7 +893,7 @@ async def handle_pay(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent
     if sender_user.isBanned():
         ban_msg = "您的账号已被封禁，请联系管理员解封。"
         if sender_user.playMode():
-            ban_msg = "你他妈被封禁了还想交易？滚"
+            ban_msg = "您他妈被封禁了还想交易？滚"
         msg += f"    - {ban_msg}"
         await pay_eventer.finish(msg)
 
@@ -901,13 +908,13 @@ async def handle_pay(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent
     except (ValueError, IndexError):
         err_msg = "语法错误或金额不是正整数"
         if sender_user.playMode():
-            err_msg = "你他妈语法都不会还想交易？滚"
+            err_msg = "您他妈语法都不会还想交易？滚"
         msg += f"    - {err_msg}"
         await pay_eventer.finish(msg)
     except Exception:
         err_msg = "发生未知错误，请检查格式"
         if sender_user.playMode():
-            err_msg = "你他妈语法都不会还想交易？滚"
+            err_msg = "您他妈语法都不会还想交易？滚"
         msg += f"    - {err_msg}"
         await pay_eventer.finish(msg)
 
@@ -915,7 +922,7 @@ async def handle_pay(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent
     if sender_user.id == receiver_user.id:
         err_msg = "你不能给自己转钱"
         if sender_user.playMode():
-            err_msg = "你他妈自己给自己转钱？脑子有病吧？"
+            err_msg = "您他妈自己给自己转钱？脑子有病吧？"
         msg += f"    - {err_msg}"
         await pay_eventer.finish(msg)
 
@@ -923,7 +930,7 @@ async def handle_pay(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent
     if receiver_user.isBanned():
         err_msg = "交易失败: 对方账号已被封禁，无法收款"
         if sender_user.playMode():
-            err_msg = "你他妈想给个封禁用户转钱？滚"
+            err_msg = "您他妈想给个封禁用户转钱？滚"
         msg += f"    - {err_msg}"
         await pay_eventer.finish(msg)
 
@@ -939,7 +946,7 @@ async def handle_pay(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent
     else:
         err_msg = "失败原因: 积分不足或交易金额小于等于零"
         if sender_user.playMode():
-            err_msg = "失败原因: 你他妈穷成这样还想转钱？滚"
+            err_msg = "失败原因: 您他妈穷成这样还想转钱？滚"
         msg += f"     - 交易失败\n     - {err_msg}"
 
     await pay_eventer.finish(msg)
@@ -1026,7 +1033,7 @@ async def handle_cleanwaste(bot: v11bot, event: GroupMessageEvent | PrivateMessa
     if user.isBanned():
         ban_msg = "您的账号已被封禁，请联系管理员解封。"
         if user.playMode():
-            ban_msg = "你他妈被封禁了还想捡垃圾？滚"
+            ban_msg = "您他妈被封禁了还想捡垃圾？滚"
         msg += f"\n    - {ban_msg}"
         await wasteTaker_event.finish(msg)
 
@@ -1165,12 +1172,14 @@ async def handle_banlist(bot: v11bot, event: GroupMessageEvent | PrivateMessageE
 
     found_banned = False
     try:
-        for filename in os.listdir(userdata_dir):
-            clean_name = filename.replace(".toolsbot_data", "")
-            user = User(clean_name)
+        sql = Database().run_sql("select * from users;")
+        for _user in sql:
+            user_id = _user [0]
+            user = User(str(user_id))
             if user.isBanned():
-                msg += f"\n    - {user.id} 已被封禁"
-                found_banned = True
+                qobj = await Data(user.id).GetQQUserObject()
+                nick = qobj.GetNick()
+                msg += f"    - 用户 ID {user.id} | 用户昵称 {nick} | 已被封禁"
     except OSError as e:
         _error(f"Failed to list userdata directory: {e}")
 
@@ -1190,20 +1199,25 @@ accountstatus_function = on_command("accountstatus", aliases={"accountStatus"}, 
 @accountstatus_function.handle()
 async def handle_accountstatus(bot: v11bot, event: GroupMessageEvent | PrivateMessageEvent,
                                 args: Message = CommandArg()):
-    """查看账号封禁状态"""
+    """查看账号封禁状态/权限"""
     msg = f"{TITLE} 当前账号情况"
     at_list = At(event.json())
+    superusers = eval(open("./.env.prod", "r").readlines()[3].replace("SUPERUSERS=", ""))
 
     if not at_list:
         user = User(event.get_user_id())
         ban_status = "封禁" if user.isBanned() else "解禁"
         msg += "\n    - 当前您账号的情况："
         msg += f"\n        - 封禁状态：{ban_status}"
+        if user.id in superusers:
+            msg += "\n        - 权限：超级用户"
     else:
         user = User(at_list[0])
         ban_status = "封禁" if user.isBanned() else "解禁"
         msg += "\n    - 当前该账号的情况："
         msg += f"\n        - 封禁状态：{ban_status}"
+        if user.id in superusers:
+            msg += "\n        - 权限：超级用户"
 
     await accountstatus_function.finish(msg)
 
@@ -1225,7 +1239,7 @@ async def handle_redpacket(bot: v11bot, event: GroupMessageEvent | PrivateMessag
     if user.isBanned():
         ban_msg = "您的账号已被封禁，请联系管理员解封。"
         if user.playMode():
-            ban_msg = "你他妈被封禁了还想发红包？滚"
+            ban_msg = "您他妈被封禁了还想发红包？滚"
         msg += f"\n    - {ban_msg}"
         await redpacket_function.finish(msg)
 
@@ -1241,28 +1255,28 @@ async def handle_redpacket(bot: v11bot, event: GroupMessageEvent | PrivateMessag
     except ValueError:
         err_msg = "语法错误或金额不是正整数"
         if user.playMode():
-            err_msg = "你他妈语法都不会还想发红包？滚"
+            err_msg = "您他妈语法都不会还想发红包？滚"
         msg += f"\n    - {err_msg}"
         await redpacket_function.finish(msg)
 
     if money <= 0 or number <= 0:
         err_msg = "语法错误或金额不是正整数"
         if user.playMode():
-            err_msg = "你他妈语法都不会还想发红包？滚"
+            err_msg = "您他妈语法都不会还想发红包？滚"
         msg += f"\n    - {err_msg}"
         await redpacket_function.finish(msg)
 
     if user.getScore() < money:
         err_msg = "余额不足"
         if user.playMode():
-            err_msg = "你他妈穷成这样还想发红包？滚"
+            err_msg = "您他妈穷成这样还想发红包？滚"
         msg += f"\n    - {err_msg}"
         await redpacket_function.finish(msg)
 
     if number > 100:
         err_msg = "发红包数量过大。"
         if user.playMode():
-            err_msg = "发红包数量过多。你他妈有钱不如做慈善。"
+            err_msg = "发红包数量过多。您他妈有钱不如做慈善。"
         msg += f"\n    - {err_msg}"
         await redpacket_function.finish(msg)
 
@@ -1305,7 +1319,7 @@ async def handle_openredpacket(bot: v11bot, event: GroupMessageEvent | PrivateMe
     if user.isBanned():
         ban_msg = "您的账号已被封禁，请联系管理员解封。"
         if user.playMode():
-            ban_msg = "你他妈被封禁了还想抢红包？滚"
+            ban_msg = "您他妈被封禁了还想抢红包？滚"
         msg += f"\n   - {ban_msg}"
         await openredpacket_function.finish(msg)
 
@@ -1322,7 +1336,7 @@ async def handle_openredpacket(bot: v11bot, event: GroupMessageEvent | PrivateMe
     if user.id in selected.get("TakedUser", []):
         dup_msg = "您已经抢过这个红包了，不能重复抢。"
         if user.playMode():
-            dup_msg = "你他妈已经抢过这个红包了，再抢就变成██。"
+            dup_msg = "您他妈已经抢过这个红包了，再抢就变成██。"
         msg += f"\n   - {dup_msg}"
         await openredpacket_function.finish(msg)
 

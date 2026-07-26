@@ -412,7 +412,7 @@ def _handle_special_functions(ctnt: str, user: User) -> Optional[str]:
             "            请勿询问此种内容。\n"
         )
         if user.playMode():
-            msg = msg.replace("请勿询问此种内容。", "你他妈就这点出息？还问这种东西？")
+            msg = msg.replace("请勿询问此种内容。", "您他妈就这点出息？还问这种东西？")
         return msg
 
     if ctnt == 'Failed("AboutWorld")':
@@ -796,7 +796,7 @@ async def handle_ai_conversation(bot: Bot, event: PrivateMessageEvent, text: str
     if ctnt == 'Failed("18Disabled")':
         reply_msg = "请勿询问此种内容。"
         if user.playMode():
-            reply_msg = "你他妈就这点出息？还问这种东西？"
+            reply_msg = "您他妈就这点出息？还问这种东西？"
     elif ctnt == 'Failed("AboutWorld")':
         reply_msg = (
             "你因涉嫌讨论政治而被强制停止聊天。\n"
