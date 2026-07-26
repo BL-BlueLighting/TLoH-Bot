@@ -7,6 +7,9 @@ from nonebot.adapters.onebot.v11 import (Bot, GroupMessageEvent,
 from nonebot.params import CommandArg
 
 from plugins.userInfoController import User
+from typing import Literal
+import requests
+from . import defines
 
 """
 TLoH Bot
@@ -26,70 +29,95 @@ saynormal 函数
 @author: BL-BlueLighting
 """
 
-saynormal_function = on_command("saynormal", aliases={""}, priority=10)
+API_LINK = "https://lab.magiconch.com/api/nbnhhsh"
+
+"""
+{
+    "title": "能不能好好说话",
+    "interfaces": [
+        {
+            "method": "post",
+            "path": "/guess",
+            "body": {
+                "text": "String"
+            },
+            "response": [
+                {
+                    "name": "String",
+                    "trans": [
+                        "String"
+                    ]
+                },
+                {
+                    "name": "String",
+                    "inputting": [
+                        "String"
+                    ]
+                },
+                {
+                    "name": "String",
+                    "trans": null
+                }
+            ]
+        },
+        {
+            "method": "post",
+            "path": "/translation/:name",
+            "body": {
+                "text": "String"
+            },
+            "response": null
+        }
+    ]
+}
+"""
+async def _handle_request(
+        api_select: Literal["guess", "submitTrans"], 
+        text: str) -> dict[str, str | list[str]]:
+
+    """请求 nbnhhsh api"""
+    body = {
+        "text": text
+    }
+
+    request_link = ""
+
+    if api_select == "guess":
+        request_link = API_LINK + "/guess"
+    else:
+        request_link = API_LINK + "/translation/" + text.split(",") [0]
+        body ["text"] = text.split(",") [1]
+
+    _response = requests.post(request_link, body) # request
+
+    if _response.text == "": # translation api will return null, so add special if
+        return {"err": "no"}
+
+    response: dict = _response.json()
+    
+    return response
+    
+
+saynormal_function = on_command("saynormal", aliases={"nbnhhsh", "能不能好好说话", "srh", "说人话"}, priority=10)
 
 @saynormal_function.handle()
 async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Message = CommandArg()):
-    msg = TITLE + " 能不能好好说话??"
+    msg = TITLE + " 能不能好好说话"
     user = User(event.get_user_id())
     _msg = args.extract_plain_text()
 
-    cmd = _msg.split(" ") [0]
-    content = "notfillnow114514"
-    try:
-        content = _msg.split(" ") [1:]
-    except Exception:
-        pass
+    # call nbnhhsh api
+    _arg = _msg.split(" ")
 
-    if cmd == "fetch" or cmd != "add":
-        fet = ""
-        if content == "notfillnow114514" and cmd != "":
-            fet = cmd
-        else:
-            fet = content
-
-        # fetch sqlite
-        db = sqlite3.connect("userinfo.db")
-        cursor = db.cursor()
-
-        # if table not exists create it
-        cursor.execute("CREATE TABLE IF NOT EXISTS saynormal (keyword TEXT, content TEXT, ban tinyint(1)); ")
-        cursor.execute("SELECT * FROM saynormal WHERE keyword = ?", (fet, ))
-
-        results = cursor.fetchall()
-        if len(results) == 0:
-            msg += f"\n    - 关键词：{fet}\n    - 啥也木有。\n    - 如果希望创建该词条，请使用 ^saynormal add {fet} [content]。"
-            await saynormal_function.finish(msg)
-
-        msg += f"\n    - 关键词：{fet}\n    - 共有 {len(results)} 条数据。"
-        for result in results:
-            if result[2] == 0:
-                msg += f"\n   - 内容：{result[1]}"
-        msg += f"\n    - 如果希望添加数据，请使用 ^saynormal add {fet} [content]。"
-
-        await saynormal_function.finish(msg)
-
-    elif cmd == "add":
-        if content == "notfillnow114514":
-            msg += "\n    - 请输入内容。"
-            await saynormal_function.finish(msg)
-
-        # fetch sqlite
-        db = sqlite3.connect("userinfo.db")
-        cursor = db.cursor()
-
-        # if table not exists create it
-        cursor.execute("CREATE TABLE IF NOT EXISTS saynormal (keyword TEXT, content TEXT, ban tinyint(1)); ")
-        cursor.execute("SELECT * FROM saynormal WHERE keyword = ?", (content.split(" ") [0], )) # type: ignore
-        if len(cursor.fetchall()) != 0:
-            cursor.execute("INSERT INTO saynormal (keyword, content, ban) VALUES (?, ?, ?)", (content.split(" ") [0], content.split(" ") [1:], 0)) # type: ignore
-            msg += "\n    - 添加成功。"
-            await saynormal_function.finish(msg)
-        msg += "\n    - 关键词不存在。"
-        await saynormal_function.finish(msg)
-
+    if _arg [0] == "submit":
+        if len(_arg) < 2:
+            await saynormal_function.finish(msg + "\n    - 请输入你要提交的 缩写 与 完整名称")
+        await _handle_request("submitTrans", f"{_arg [0]},{_arg[1]}")
+        await saynormal_function.finish(msg + "\n    - 您的词条提交成功！当词条审核通过后将可以被查询。")
     else:
-        msg += "\n    - 未知命令。"
-        await saynormal_function.finish(msg)
-
-
+        result = await _handle_request("guess", _arg [0])
+        trans = result ["trans"]
+        msg += f"\n    - 查询到 {len(trans)} 个词条。"
+        for tran in trans:
+            msg += f"\n    - {tran}"
+        await defines.send_fake_forward_msg(bot, event, msg)

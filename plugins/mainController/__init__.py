@@ -10,6 +10,7 @@ from nonebot.adapters.onebot.v11.message import MessageSegment
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, EventMessage
 from nonebot.permission import SUPERUSER
+from plugins.undefiendControllers.defines import send_fake_forward_msg
 
 """
 TLoH Bot
@@ -78,7 +79,7 @@ COMMANDS_LIST = [
     ["scp/scip/scpf/scpfoundation/scipterminal", "SCP 基金会相关功能。"],
     ["hellfunny", "地狱笑话功能。"],
     ["wordle", "Wordle 功能。"],
-    ["saynormal", "能不能好好说话？"],
+    ["srh/nbnhhsh/saynormal", "能不能好好说话？"],
     ["hitokoto", "每日一言。"],
     ["zanwo", "给你个人资料点赞。"],
     ["vme50", "vivo 50."],
@@ -127,32 +128,9 @@ async def handle_help(bot: Bot, event: PrivateMessageEvent | GroupMessageEvent):
     help_lines.append("发送 ^help 查看此菜单")
     
     help_text = "\n".join(help_lines)
-    
-    # 发送合并转发消息
-    try:
-        # 构建合并转发的消息节点列表
-        msg_nodes = []
-        
-        msg_nodes.append(
-            MessageSegment.node_custom(
-                user_id=int(bot.self_id),
-                nickname="TLoH Bot",
-                content=Message(help_text)
-            )
-        )
-        
-        # 发送合并转发消息
-        await bot.send_group_forward_msg(
-            group_id=event.group_id,
-            messages=msg_nodes
-        ) if isinstance(event, GroupMessageEvent) else await bot.send_private_forward_msg(
-            user_id=event.user_id,
-            messages=msg_nodes
-        )
-        
-    except Exception as e:
-        # 如果合并转发失败，降级为普通消息
-        await help_cmd.finish(f"帮助菜单生成失败，请重试\n错误: {e}")
+
+    if await send_fake_forward_msg(bot, event, help_text) == -1:
+        await help_cmd.finish("系统出现错误。")
 
 """
 check 函数

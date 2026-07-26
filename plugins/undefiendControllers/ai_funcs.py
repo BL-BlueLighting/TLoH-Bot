@@ -405,7 +405,7 @@ def _handle_special_functions(ctnt: str, user: User) -> Optional[str]:
     """
     if ctnt == 'Failed("18Disabled")':
         msg = (
-            "ToolsBot AI\n"
+            "TLoH Bot AI\n"
             "        - 模型：\n"
             "            (略)\n"
             "        - 提示：\n"
@@ -417,7 +417,7 @@ def _handle_special_functions(ctnt: str, user: User) -> Optional[str]:
 
     if ctnt == 'Failed("AboutWorld")':
         msg = (
-            "ToolsBot AI\n"
+            "TLoH Bot AI\n"
             "        - 模型：\n"
             "            (略)\n"
             "        - 提示：\n"
