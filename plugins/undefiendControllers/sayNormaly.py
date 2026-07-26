@@ -95,7 +95,7 @@ async def _handle_request(
 
     response: dict = _response.json()
     
-    return response
+    return response [0]
     
 
 saynormal_function = on_command("saynormal", aliases={"nbnhhsh", "能不能好好说话", "srh", "说人话"}, priority=10)
@@ -115,11 +115,12 @@ async def _ (bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, args: Mes
         await _handle_request("submitTrans", f"{_arg [1]},{_arg[2]}")
         await saynormal_function.finish(msg + "\n    - 您的词条提交成功！当词条审核通过后将可以被查询。")
     else:
-        if len(_arg) < 1:
+        if _arg [0] == "":
             await saynormal_function.finish(msg + "\n    - 请使用 ^srh/^nbnhhsh/^saynormal <词条名> 来进行查询。")
+ 
         result = await _handle_request("guess", _arg [0])
-        trans = result ["trans"]
-        if len(trans) <= 0:
+        trans = result.get("trans", [])
+        if len(trans) <= 0 or result.get("inputting") != None:
             msg += "\n    - 该缩写暂没有完整名称。\n    - 使用 ^srh submit <缩写> <完整名称> 来提交一个词条。"
         else:
             msg += f"\n    - 查询到 {len(trans)} 个词条。"
