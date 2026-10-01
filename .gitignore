@@ -177,3 +177,15 @@ NapCat/*
 NapCat
 NapCat.Shell.zip
 napcat.sh
+
+toolsbot/loginQRCodes
+toolsbot/loginQRCodes/*
+
+cache
+cache/
+*.out
+*.db.*
+*.db-*
+
+.idea
+.idea/*

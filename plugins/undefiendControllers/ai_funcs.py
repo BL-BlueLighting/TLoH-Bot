@@ -25,13 +25,14 @@ from toolsbot.configs import DATA_PATH
 from toolsbot.services import _error, _info
 from plugins.userInfoController import User, At
 
+from enum import Enum
+
 # 都是 di*ksuck 写的，不关我事
 
 # 定义会话和提示词存储文件路径
 SESSIONS_FILE = DATA_PATH / "user_sessions.json"
 PROMPTS_FILE = DATA_PATH / "user_prompts.json"
 today_date = datetime.date.today()
-
 
 # =============================================================================
 # Storage helpers

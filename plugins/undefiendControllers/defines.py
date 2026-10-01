@@ -10,6 +10,7 @@ from nonebot.adapters.onebot.v11.message import MessageSegment
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, EventMessage
 from nonebot.permission import SUPERUSER
+from openai.types import image_edit_completed_event
 
 """
 TLoH Bot
@@ -45,3 +46,11 @@ async def send_fake_forward_msg(bot: Bot, event: GroupMessageEvent | PrivateMess
     except Exception as e:
         # 如果合并转发失败，降级为普通消息
         return -1
+
+async def send_image_msg(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent, image_path: str):
+    await bot.send_group_msg(
+        group_id=event.group_id,
+        message=Message(
+            MessageSegment.image(Path() / "" / image_path)
+        )
+    )
