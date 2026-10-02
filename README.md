@@ -7,7 +7,7 @@
 
 <p align="center">
     <a href="#">
-        <img src="https://img.shields.io/badge/Version-2.0.0-blue">
+        <img src="https://img.shields.io/badge/Version-2.0.13-blue">
     </a>
     <a href="#">
         <img src="https://img.shields.io/badge/OneBot-v11-blue">
@@ -18,7 +18,7 @@
     <a href="README.md">中文</a> | <a href="README.en.md">English</a>
 </div>
 
-<p align="center"><i>优秀的 QQ Bot 实例</i></p>
+<p align="center"><i>完整、快速、简洁的 Nonebot2 Bot</i></p>
 
 <hr/>
 
@@ -81,6 +81,8 @@ pip install -r ./scripts/install/requirements.txt
 
 ## 这个 bot 怎么链接到 QQ？
 
+### NapCat (现已不推荐，原因见最后)
+
 先安装NapCat并登录Bot的QQ账号 https://github.com/NapNeko/NapCatQQ.
 
 随后在“网络配置” --> 新建 --> Websocket客户端 中填写名称，URL和token
@@ -88,10 +90,12 @@ pip install -r ./scripts/install/requirements.txt
 ![Napcat1](./README.NAPCAT.1.png)
 ![Napcat2](./README.NAPCAT.2.png)
 
-## 使用教程？
-在 Bot 上线之后，用 ^help，或者参考这个图片：
+*近期由于 NapCat 的 QQ 风控日趋严重，已不推荐作为连接方法。现更推荐 Snowluma 项目，详情搜索其 GitHub 仓库。*
 
-<img src="./helpdocuments/PNG/HelpDocument v2.png">
+
+
+## 使用教程？
+在 Bot 上线之后，用 ^help。
 
 ## 感谢
 > [!Note]
@@ -100,14 +104,8 @@ pip install -r ./scripts/install/requirements.txt
 
 <a href="https://github.com/yzyyz1387/nonebot_plugin_admin/">NoneBot Plugin Admin</a>
 
-*致歉：引入了 SCP 基金会 TypeSense CROM 的 API Key，对其开发者致以歉意。若需要进行删除，请联系本人。*
+本项目的 SCP Foundation 引入了 CROM 的 Typesence API Key.
 
 本项目的**能不能好好说话**模块引入了<a href="https://github.com/itorr/nbnhhsh">itorr/nbnhhsh</a>的 API 接口。
 
-## 警告
 
-> [!Warning]
->
-> 该项目目前并不稳定。请不要直接克隆该项目，我没办法做到自检查代码的每一处角落。
->
-> 如果你发现了任何问题，请在 `Github Issues` 中发表一个 Issue。
