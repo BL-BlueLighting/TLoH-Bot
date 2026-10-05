@@ -26,6 +26,8 @@ from typing import Any, Optional, Sequence
 
 from PIL import Image, ImageDraw, ImageFont
 
+from toolsbot.services import _error
+
 # ---------------------------------------------------------------------------
 # Palette
 # ---------------------------------------------------------------------------
@@ -69,16 +71,26 @@ ILLUSTRATION_TOP = 36
 # Fonts
 # ---------------------------------------------------------------------------
 
+#: Subset faces shipped with the plugin, used when the host has no CJK font
+#: installed. Covers ASCII, kana and the 3755 common simplified hanzi.
+_BUNDLED_FONTS = Path(__file__).parent / "data" / "fonts"
+
 #: The CJK faces live inside .ttc collections; index 2 is Simplified Chinese.
+#: System fonts come first because they cover every character; the bundled
+#: subset is the fallback so a bare server still renders properly.
 _CJK = (
     ("/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", 2),
     ("/usr/share/fonts/noto-cjk/NotoSansCJK-DemiLight.ttc", 2),
     ("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc", 2),
+    ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 2),
+    (str(_BUNDLED_FONTS / "NotoSansSC-Regular.otf"), 0),
 )
 _CJK_BOLD = (
     ("/usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc", 2),
     ("/usr/share/fonts/noto-cjk/NotoSansCJK-Medium.ttc", 2),
     ("/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc", 2),
+    ("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc", 2),
+    (str(_BUNDLED_FONTS / "NotoSansSC-Bold.otf"), 0),
 )
 _MONO = (
     ("/usr/share/fonts/TTF/JetBrainsMono-ExtraBold.ttf", 0),
@@ -86,26 +98,45 @@ _MONO = (
 )
 
 _font_cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
+_font_warned = False
+
+
+def _try_load(candidates: Sequence[tuple[str, int]], size: int) -> Optional[ImageFont.FreeTypeFont]:
+    for path, index in candidates:
+        if not os.path.exists(path):
+            continue
+        try:
+            return ImageFont.truetype(path, size, index=index)
+        except OSError:
+            continue
+
+    return None
 
 
 def _load_font(size: int, bold: bool = False, mono: bool = False) -> ImageFont.FreeTypeFont:
-    """Load a font, falling back to Pillow's bitmap font if nothing is found."""
+    """Load a font, falling back through the bundled faces then Pillow's default."""
+    global _font_warned
+
     kind = "mono" if mono else "bold" if bold else "regular"
     key = (kind, size)
     if key in _font_cache:
         return _font_cache[key]
 
-    for path, index in (_MONO if mono else _CJK_BOLD if bold else _CJK):
-        if not os.path.exists(path):
-            continue
-        try:
-            font = ImageFont.truetype(path, size, index=index)
-            _font_cache[key] = font
-            return font
-        except OSError:
-            continue
+    font = _try_load(_MONO if mono else _CJK_BOLD if bold else _CJK, size)
 
-    font = ImageFont.load_default(size)
+    if font is None and mono:
+        # The CJK faces carry digits and Latin too, which beats the bitmap default.
+        font = _try_load(_CJK_BOLD if bold else _CJK, size)
+
+    if font is None:
+        if not _font_warned:
+            _font_warned = True
+            _error(
+                "[phigros] 没有可用字体，卡片上的中文会显示成方块。"
+                "请安装 fonts-noto-cjk，或把字体放到 data/fonts/ 下。"
+            )
+        font = ImageFont.load_default(size)
+
     _font_cache[key] = font
     return font
 
