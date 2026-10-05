@@ -51,7 +51,6 @@ from typing import Any, Iterable, Optional, Sequence
 
 import PhigrosScoreLibrary as psl
 
-from plugins.userInfoController import Database
 from toolsbot.services import _error, _info
 
 #: Valid values for the ``region`` column.
@@ -260,16 +259,26 @@ class SnapshotSaveResult:
         return self.snapshot_id != ""
 
 
-class PhigrosUserdataDatabase(Database):
+class PhigrosUserdataDatabase:
     """Read/write entry point for Phigros data.
 
-    Inherits from ``userInfoController.Database`` and reuses the same
-    ``userdata.db`` file and its ``run_sql``.
+    Wraps ``userInfoController.Database`` so the same ``userdata.db`` file and
+    its ``run_sql`` are reused. Wrapping rather than subclassing keeps the
+    import lazy: ``userInfoController`` imports this package from its own
+    ``user.py``, and at module scope it would still be half-initialised, so the
+    ``Database`` name would not exist yet.
     """
 
     def __init__(self) -> None:
-        super().__init__()
+        from plugins.userInfoController import Database
+
+        self._db = Database()
+        self.db_path = self._db.db_path
         self._table_ready = False
+
+    def run_sql(self, sql: str, params: tuple = ()):
+        """Run a statement through the shared helper and return fetchall()."""
+        return self._db.run_sql(sql, params)
 
     # -------------------------------------------------------------------------
     # Schema setup

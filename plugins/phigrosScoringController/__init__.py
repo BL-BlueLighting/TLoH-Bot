@@ -29,14 +29,14 @@ from nonebot.internal.matcher import Matcher
 from nonebot.params import CommandArg
 
 import PhigrosScoreLibrary as psl
-from plugins.phigrosScoringController import render
-from plugins.phigrosScoringController.database import (
-    LEVEL_NAMES,
-    PhigrosUserdataDatabase,
-    SnapshotSaveResult,
-    make_player_id,
-)
-from plugins.phigrosScoringController.songs import SongInfo
+
+# Relative imports on purpose: this package can be pulled in while
+# userInfoController is still initialising (its user.py imports this module),
+# and "from plugins.phigrosScoringController import x" would then look up an
+# attribute on a half-built package and fail.
+from . import render
+from .database import LEVEL_NAMES, PhigrosUserdataDatabase, SnapshotSaveResult, make_player_id
+from .songs import SongInfo
 from plugins.undefiendControllers.defines import send_image_msg
 from toolsbot.services import _error
 
