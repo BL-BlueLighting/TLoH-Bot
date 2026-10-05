@@ -14,7 +14,6 @@ from plugins.phigrosScoringController.database import (
     make_player_id,
 )
 from plugins.phigrosScoringController.songs import SongInfo
-from plugins.undefiendControllers.defines import send_image_msg
 from plugins.userInfoController.data import _safe_read_json, _safe_write_json
 from toolsbot.services import _error, _info
 

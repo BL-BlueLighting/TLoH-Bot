@@ -34,10 +34,14 @@ import PhigrosScoreLibrary as psl
 # userInfoController is still initialising (its user.py imports this module),
 # and "from plugins.phigrosScoringController import x" would then look up an
 # attribute on a half-built package and fail.
+#
+# For the same reason nothing here may import another plugin package at module
+# scope: plugins.undefiendControllers runs its own __init__ on first import,
+# which reaches back into userInfoController for names that do not exist yet.
+# send_image_msg is therefore imported inside send_image().
 from . import render
 from .database import LEVEL_NAMES, PhigrosUserdataDatabase, SnapshotSaveResult, make_player_id
 from .songs import SongInfo
-from plugins.undefiendControllers.defines import send_image_msg
 from toolsbot.services import _error
 
 TITLE = "TLoH Bot"
@@ -108,6 +112,9 @@ class PhigrosCommand:
 
     async def send_image(self, path: str) -> None:
         """Send a rendered card."""
+        # Imported lazily: see the note at the top of this module.
+        from plugins.undefiendControllers.defines import send_image_msg
+
         await send_image_msg(self.bot, self.evt, path)
 
     async def GenerateSendQRCode(self, qrcode_url: str) -> None:
