@@ -29,7 +29,7 @@ async def _():
     try:
         with open(DATA_PATH.joinpath("configuration.toml"), "r", encoding="utf-8") as f:
             config = toml.load(f)
-        if config["EnableAutoSign"]:
+        if config.get("EnableAutoSign", True):
             bot = nonebot.get_bot()
             group_list = await bot.get_group_list()
             for group in group_list:

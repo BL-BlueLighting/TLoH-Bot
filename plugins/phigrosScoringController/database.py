@@ -690,6 +690,17 @@ class PhigrosUserdataDatabase(Database):
         rows = self.run_sql("SELECT save_blob FROM pgr_snapshots WHERE id = ?", (snapshot_id,))
         return rows[0][0] if rows else None
 
+    def GetReportedRks(self, player_id: str) -> Optional[float]:
+        """RKS the game itself reported with the latest snapshot.
+
+        This is the value Phigros uploaded, not a recomputation. It can differ
+        from :meth:`ComputeBest19` because the game may not refresh it on every
+        save, and because songs missing from the difficulty table contribute
+        nothing to a recomputation. Returns None before the first snapshot.
+        """
+        snapshot = self.GetLatestSnapshot(player_id)
+        return snapshot.get("ranking_score") if snapshot else None
+
     def GetLatestSnapshot(self, player_id: str) -> Optional[dict[str, Any]]:
         """Return the player's most recent snapshot metadata."""
         self._ensure_tables()

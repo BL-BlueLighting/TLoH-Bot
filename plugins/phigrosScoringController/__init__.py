@@ -5,12 +5,13 @@ phigrosScoringController
 Phigros score lookup for QQ groups.
 
 Everything is driven by the single ``pgr`` command; the first argument picks a
-subcommand (``pgr bind``, ``pgr update``, ...). Accounts are bound by scanning a
-TapTap QR code, after which the sessionToken is kept in ``userdata.db`` so later
-lookups need no interaction.
+subcommand (``pgr bind``, ``pgr me``, ...). Accounts are bound by scanning a
+TapTap QR code, after which the sessionToken is kept in ``userdata.db`` so
+later lookups need no interaction.
 
-Data lives in the ``pgr_*`` tables managed by :mod:`.database`; this module only
-deals with chat I/O, the PhigrosScoreLibrary calls and user-facing wording.
+Replies that carry more than a couple of lines are rendered as PNG cards (see
+:mod:`.render`) and sent as images; short confirmations and errors stay as text.
+Song metadata lives in ``data/info.tsv`` and is reached through :mod:`.songs`.
 
 @author: BL-BlueLighting
 """
@@ -28,13 +29,15 @@ from nonebot.internal.matcher import Matcher
 from nonebot.params import CommandArg
 
 import PhigrosScoreLibrary as psl
+from plugins.phigrosScoringController import render
 from plugins.phigrosScoringController.database import (
     LEVEL_NAMES,
     PhigrosUserdataDatabase,
     SnapshotSaveResult,
     make_player_id,
 )
-from plugins.undefiendControllers.defines import send_fake_forward_msg, send_image_msg
+from plugins.phigrosScoringController.songs import SongInfo
+from plugins.undefiendControllers.defines import send_image_msg
 from toolsbot.services import _error
 
 TITLE = "TLoH Bot"
@@ -45,21 +48,37 @@ QRCODE_DIR = "toolsbot/loginQRCodes"
 #: Song searches return at most this many matches.
 SEARCH_LIMIT = 10
 
-#: Replies longer than this many lines are sent as a merged forward message
-#: instead of dumping a wall of text into the group.
-FORWARD_LINE_THRESHOLD = 6
+#: Difficulty keywords accepted by commands that take a level.
+LEVEL_KEYWORDS = {"0": 0, "1": 1, "2": 2, "3": 3}
+for _index, _name in enumerate(LEVEL_NAMES):
+    LEVEL_KEYWORDS[_name] = _index
+    LEVEL_KEYWORDS[_name.lower()] = _index
 
-HELP_TEXT = """TLoH Bot - Phigros 查分
-    - ^pgr bind [global] - 扫码登录并绑定账号（global 为国际服）
-    - ^pgr unbind - 解绑，保留历史成绩
-    - ^pgr unbind all - 解绑并删除全部数据
-    - ^pgr status - 查看绑定状态
-    - ^pgr update - 拉取最新存档
-    - ^pgr me - 查看 B19 与 RKS
-    - ^pgr song <关键词> - 查询自己某首歌的成绩
-    - ^pgr board <关键词> - 查询某首歌的排行榜
-    - ^pgr history - 查看 RKS 变化
-"""
+HELP_GROUPS = (
+    ("账号", (
+        ("pgr bind [global]", "扫码登录并绑定（global 为国际服）"),
+        ("pgr unbind [all]", "解绑；all 连历史成绩一起删"),
+        ("pgr status", "查看绑定状态"),
+    )),
+    ("成绩", (
+        ("pgr update", "拉取最新云存档"),
+        ("pgr me", "查看 B19 与 RKS"),
+        ("pgr song <关键词>", "查询自己某首歌的成绩"),
+        ("pgr progress", "各难度的通关 / FC / AP 进度"),
+        ("pgr history", "RKS 变化曲线"),
+    )),
+    ("曲目", (
+        ("pgr info <关键词>", "曲目信息与定数"),
+        ("pgr search <关键词>", "搜索曲目"),
+        ("pgr random", "随机抽一首"),
+    )),
+    ("排行", (
+        ("pgr board <关键词> [难度]", "某曲某难度的排行榜"),
+    )),
+)
+
+#: Shared song metadata; loaded on first use.
+SONGS = SongInfo()
 
 
 class PhigrosCommand:
@@ -81,32 +100,24 @@ class PhigrosCommand:
     # -------------------------------------------------------------------------
 
     async def send_msg(self, message: str) -> None:
-        """Reply in the same context the command came from.
-
-        Anything longer than a few lines is delivered as a merged forward, so
-        a B19 listing does not flood the group with a wall of text.
-        """
-        if message.count("\n") + 1 > FORWARD_LINE_THRESHOLD:
-            # send_fake_forward_msg returns -1 and sends nothing when the
-            # forward API is unavailable, so fall through to a plain message
-            # rather than dropping the reply.
-            if await send_fake_forward_msg(self.bot, self.evt, message) == 0:
-                return
-
+        """Send a plain text reply."""
         if isinstance(self.evt, PrivateMessageEvent):
             await self.bot.send_private_msg(user_id=int(self.evt.user_id), message=message)
         else:
             await self.bot.send_group_msg(group_id=self.evt.group_id, message=message)
 
+    async def send_image(self, path: str) -> None:
+        """Send a rendered card."""
+        await send_image_msg(self.bot, self.evt, path)
+
     async def GenerateSendQRCode(self, qrcode_url: str) -> None:
         """Render the TapTap login URL as a QR image and send it."""
         os.makedirs(QRCODE_DIR, exist_ok=True)
 
-        name = f"{random.randint(100000000, 999999999)}.png"
-        path = os.path.join(QRCODE_DIR, name)
+        path = os.path.join(QRCODE_DIR, f"{random.randint(100000000, 999999999)}.png")
         qrcode.make(qrcode_url).save(path)
 
-        await send_image_msg(self.bot, self.evt, path)
+        await self.send_image(path)
 
     # -------------------------------------------------------------------------
     # Account helpers
@@ -137,9 +148,9 @@ class PhigrosCommand:
     def RequireBinding(self) -> str | None:
         """Return an error message when the sender is not usable, else None."""
         if self.Player() is None:
-            return "TLoH Bot - Phigros 查分\n    - 您尚未绑定账号，请先发送 pgr bind。"
+            return f"{TITLE} - Phigros 查分\n    - 您尚未绑定账号，请先发送 pgr bind。"
         if not self.Token():
-            return "TLoH Bot - Phigros 查分\n    - 您的登录已失效，请重新发送 pgr bind。"
+            return f"{TITLE} - Phigros 查分\n    - 登录已失效，请重新发送 pgr bind。"
         return None
 
     # -------------------------------------------------------------------------
@@ -150,8 +161,7 @@ class PhigrosCommand:
         """Download and parse the bound account's cloud save.
 
         Returns the parsed save, the raw zip (needed for the content hash and
-        for archival) and the summary. Uses LeanCloudClient directly rather
-        than the facade because the facade does not expose the raw bytes.
+        for archival) and the summary.
 
         Raises ``psl.PhigrosApiError`` when the stored token is no longer valid.
         """
@@ -171,11 +181,10 @@ class PhigrosCommand:
         expected = (self.Player() or {}).get("open_id")
         if expected and record.user_id and record.user_id != expected:
             raise psl.PhigrosApiError(
-                "TLoH Bot - Phigros 查分\n    - 您的 Token 过期，请 ^pgr unbind 后 ^pgr bind 再登录。"
+                "返回的存档不属于当前绑定的账号，请重新发送 pgr bind 登录。"
             )
 
         blob = await asyncio.to_thread(api.download_save, record.url)
-
         save = await asyncio.to_thread(psl.parse_save, blob)
         summary = await asyncio.to_thread(psl.parse_summary, record.summary)
 
@@ -208,20 +217,14 @@ class PhigrosCommand:
         try:
             result = await login.login(on_qr)
         except psl.PhigrosLoginError as error:
-            await self.send_msg(f"TLoH Bot - Phigros 查分\n    - 登录失败：{error}")
+            await self.send_msg(f"{TITLE} - Phigros 查分\n    - 登录失败：{error}")
             return None
 
         # Remember the LeanCloud account id so the same game account cannot be
         # bound twice; it is also what identifies the player in the API.
-        player_id = self.db.BindPlayer(self.evt.get_user_id(), region=region.value)
-
-        # The insert is swallowed by run_sql when it fails, so confirm the row
-        # really exists before writing anything that references it.
-        if self.db.GetPlayer(player_id) is None:
-            _error(f"[phigros] failed to bind {player_id}")
-            await self.send_msg("TLoH Bot - Phigros 查分\n    - 账号绑定失败，请稍后重试。")
-            return None
-
+        player_id = self.db.BindPlayer(
+            self.evt.get_user_id(), region=region.value, open_id=result.user_id
+        )
         if result.user_id:
             self.db.SetOpenId(player_id, result.user_id)
 
@@ -234,96 +237,116 @@ class PhigrosCommand:
         return result.session_token
 
     # -------------------------------------------------------------------------
-    # Subcommands
+    # Routing
     # -------------------------------------------------------------------------
 
     async def Dispatch(self, args: str) -> str | None:
-        """Route the subcommand. Returns the reply text, or None if already sent."""
+        """Route the subcommand. Returns text to send, or None when done."""
         parts = args.split()
         sub = parts[0].lower() if parts else "help"
-        rest = parts[1:]
+        rest = " ".join(parts[1:])
 
         routes = {
-            "help": self.CmdHelp, "帮助": self.CmdHelp,
+            "help": self.CmdHelp, "帮助": self.CmdHelp, "菜单": self.CmdHelp,
             "bind": self.CmdBind, "绑定": self.CmdBind, "登录": self.CmdBind,
             "unbind": self.CmdUnbind, "解绑": self.CmdUnbind,
             "status": self.CmdStatus, "状态": self.CmdStatus,
             "update": self.CmdUpdate, "更新": self.CmdUpdate, "同步": self.CmdUpdate,
-            "me": self.CmdMe, "查分": self.CmdMe, "b19": self.CmdMe,
+            "me": self.CmdMe, "b19": self.CmdMe, "查分": self.CmdMe,
             "song": self.CmdSong, "单曲": self.CmdSong,
-            "board": self.CmdBoard, "排行": self.CmdBoard,
+            "board": self.CmdBoard, "排行": self.CmdBoard, "排行榜": self.CmdBoard,
+            "progress": self.CmdProgress, "进度": self.CmdProgress,
             "history": self.CmdHistory, "历史": self.CmdHistory,
+            "info": self.CmdInfo, "曲目": self.CmdInfo, "曲目信息": self.CmdInfo,
+            "search": self.CmdSearch, "搜索": self.CmdSearch,
+            "random": self.CmdRandom, "随机": self.CmdRandom,
         }
 
         handler = routes.get(sub)
         if handler is None:
-            return f"TLoH Bot - Phigros 查分\n    - 未知指令 {sub}。\n{HELP_TEXT}"
+            return f"{TITLE} - Phigros 查分\n    - 未知指令 {sub}，发送 pgr help 查看用法。"
 
-        return await handler(" ".join(rest))
+        return await handler(rest)
 
-    async def CmdHelp(self, rest: str) -> str:
-        return HELP_TEXT
+    # -------------------------------------------------------------------------
+    # Account commands
+    # -------------------------------------------------------------------------
+
+    async def CmdHelp(self, rest: str) -> None:
+        await self.send_image(render.render_help(f"{TITLE} - Phigros 查分", HELP_GROUPS))
+        return None
 
     async def CmdBind(self, rest: str) -> str | None:
-        """Bind the account, or replace the binding when one already exists."""
-        region = psl.TapTapRegion.GLOBAL if rest.strip() in ("global", "gb", "国际服") else psl.TapTapRegion.CHINA
+        """Bind the account, or report why it cannot be bound yet."""
+        region = (
+            psl.TapTapRegion.GLOBAL
+            if rest.strip().lower() in ("global", "gb", "国际服")
+            else psl.TapTapRegion.CHINA
+        )
 
         player = self.Player()
         if player is not None:
             if self.Token():
-                return "TLoH Bot - Phigros 查分\n    - 您已经绑定过了。如需更换账号，请先发送 pgr unbind。"
+                return f"{TITLE} - Phigros 查分\n    - 您已经绑定过了。如需更换账号，请先发送 pgr unbind。"
             if player.get("region") != region.value:
-                # Re-binding under a different region would keep stale data
+                # Re-binding under a different region would leave stale data
                 # under the old region, so ask for an explicit unbind first.
-                return "TLoH Bot - Phigros 查分\n    - 您之前绑定的是其它区服，请先发送 pgr unbind all 后再绑定。"
+                return f"{TITLE} - Phigros 查分\n    - 您之前绑定的是其它区服，请先发送 pgr unbind all。"
 
-        await self.send_msg("请使用 TapTap App 扫描下方的二维码完成登录。")
+        await self.send_msg(f"{TITLE} - Phigros 查分\n    - 请使用 TapTap App 扫描下方二维码完成登录。")
 
         token = await self.Login()
         if not token:
             return None
 
         nickname = (self.db.GetPlayer(self.player_id) or {}).get("nickname")
-        return f"登录成功，欢迎回来 {nickname}。" if nickname else "登录成功。"
+        return (
+            f"{TITLE} - Phigros 查分\n    - 登录成功，欢迎回来 {nickname}。"
+            if nickname
+            else f"{TITLE} - Phigros 查分\n    - 登录成功。"
+        )
 
     async def CmdUnbind(self, rest: str) -> str:
         """Unbind the account. 'all' also erases every stored snapshot."""
-        player = self.Player()
-        if player is None:
-            return "TLoH Bot - Phigros 查分\n    - 您尚未绑定任何账号。"
+        if self.Player() is None:
+            return f"{TITLE} - Phigros 查分\n    - 您尚未绑定任何账号。"
 
         if rest.strip().lower() in ("all", "全部", "彻底"):
             self.db.DeletePlayer(self.player_id)
-            return "TLoH Bot - Phigros 查分\n    - 已解绑并删除全部数据，包括历史成绩。"
+            return f"{TITLE} - Phigros 查分\n    - 已解绑并删除全部数据，包括历史成绩。"
 
         # Without a credential the account is unusable, but keeping the
         # snapshots means a later re-bind inherits the history.
         self.db.DeleteSessionToken(self.player_id)
-        return "TLoH Bot - Phigros 查分\n    - 已解绑。历史成绩仍保留，重新绑定后可以继续查看；如需彻底删除请发送 ^pgr unbind all。"
+        return (
+            f"{TITLE} - Phigros 查分\n"
+            "    - 已解绑。历史成绩仍保留，重新绑定后可继续查看；\n"
+            "    - 如需彻底删除请发送 pgr unbind all。"
+        )
 
-    async def CmdStatus(self, rest: str) -> str:
+    async def CmdStatus(self, rest: str) -> str | None:
         player = self.Player()
         if player is None:
-            return "TLoH Bot - Phigros 查分\n    - 您尚未绑定账号。发送 ^pgr bind 开始。"
+            return f"{TITLE} - Phigros 查分\n    - 您尚未绑定账号。发送 pgr bind 开始。"
 
         snapshots = self.db.ListSnapshots(self.player_id, limit=1)
-        lines = [
-            f"    - 账号：{player.get('nickname') or '未知'}",
-            f"    - 区服：{'国际服' if player.get('region') == 'global' else '国服'}",
-            f"    - 登录状态：{'有效' if self.Token() else '已失效，请重新 ^pgr bind'}",
-            f"    - 绑定时间：{player.get('created_at')}",
-        ]
+        await self.send_image(
+            render.render_status(
+                nickname=player.get("nickname") or "未知玩家",
+                region=player.get("region") or "china",
+                bound_at=str(player.get("created_at") or "")[:19],
+                token_ok=bool(self.Token()),
+                latest=snapshots[0] if snapshots else None,
+                player_id=player.get("id", ""),
+            )
+        )
+        return None
 
-        if snapshots:
-            latest = snapshots[0]
-            lines.append(f"    - 最近同步：{latest.get('captured_at')}")
-            lines.append(f"    - RKS：{latest.get('ranking_score'):.4f}")
-        else:
-            lines.append("    - 尚未同步过成绩，发送 ^pgr update 拉取。")
+    # -------------------------------------------------------------------------
+    # Score commands
+    # -------------------------------------------------------------------------
 
-        return "TLoH Bot - Phigros 查分\n" + "\n".join(lines)
-
-    async def CmdUpdate(self, rest: str) -> str | None:
+    async def CmdUpdate(self, rest: str) -> str:
         """Pull the cloud save and store a new snapshot."""
         error = self.RequireBinding()
         if error:
@@ -332,22 +355,24 @@ class PhigrosCommand:
         try:
             save, blob, summary = await self.FetchSave()
         except psl.PhigrosError as error:
-            return f"TLoH Bot - Phigros 查分\n    - 获取存档失败：{error}"
+            return f"{TITLE} - Phigros 查分\n    - 获取存档失败：{error}"
 
         result: SnapshotSaveResult = self.db.SaveSnapshot(
             self.player_id, save, blob, summary
         )
 
         if not result.ok:
-            return "TLoH Bot - Phigros 查分\n    - 存档入库失败，请稍后重试。"
+            return f"{TITLE} - Phigros 查分\n    - 存档入库失败，请稍后重试。"
 
         if not result.is_new:
-            return "TLoH Bot - Phigros 查分\n    - 成绩没有变化，无需同步。"
+            return f"{TITLE} - Phigros 查分\n    - 成绩没有变化，无需同步。"
 
-        best19 = self.db.ComputeBest19(self.player_id)
+        # Show the RKS the game uploaded rather than recomputing it from the
+        # records; the two can disagree (see Database.GetReportedRks).
+        rks = self.db.GetReportedRks(self.player_id)
         lines = [
             f"    - 同步完成，本次写入 {result.record_count} 条成绩。",
-            f"    - RKS：{best19['rks']:.4f}",
+            f"    - RKS：{rks:.4f}" if rks is not None else "    - RKS：暂无",
         ]
 
         if result.missing_songs:
@@ -355,139 +380,170 @@ class PhigrosCommand:
             # stored but contribute nothing to RKS until the table catches up.
             lines.append(f"    - 其中 {len(result.missing_songs)} 首曲目不在定数表中，暂不计入 RKS。")
 
-        return "TLoH Bot - Phigros 查分\n" + "\n".join(lines)
+        return f"{TITLE} - Phigros 查分\n" + "\n".join(lines)
 
-    async def CmdMe(self, rest: str) -> str:
-        """Show the stored B19."""
+    async def CmdMe(self, rest: str) -> str | None:
+        """Show the stored B19 as an image."""
+        error = self.RequireBinding()
+        if error:
+            return error
+
+        snapshot = self.db.GetLatestSnapshot(self.player_id)
+        if snapshot is None:
+            return f"{TITLE} - Phigros 查分\n    - 还没有成绩数据，请先发送 pgr update。"
+
+        best19 = self.db.ComputeBest19(self.player_id)
+        nickname = (self.Player() or {}).get("nickname") or "未知玩家"
+
+        # The sheet shows display names, not raw ids, so resolve them here
+        # rather than making the renderer depend on the metadata table.
+        entries = self.db.GetBest19List(self.player_id)
+        for entry in entries:
+            entry["title"] = SONGS.title(entry.get("song_id", ""))
+
+        await self.send_image(
+            render.render_b19(
+                nickname=nickname,
+                region=self.Region(),
+                captured_at=str(snapshot.get("captured_at") or ""),
+                rks=self.db.GetReportedRks(self.player_id),
+                phi=best19.get("phi"),
+                best=entries,
+                progress=self.db.GetProgress(self.player_id),
+            )
+        )
+        return None
+
+    async def CmdSong(self, rest: str) -> str | None:
+        """Show the player's best score for one song."""
+        error = self.RequireBinding()
+        if error:
+            return error
+
+        keyword = rest.strip()
+        if not keyword:
+            return f"{TITLE} - Phigros 查分\n    - 用法：pgr song <曲名关键词>"
+
+        song_id, matches = SONGS.resolve(keyword)
+        if song_id is None:
+            if not matches:
+                return f"{TITLE} - Phigros 查分\n    - 没有找到包含「{keyword}」的曲目。"
+            await self.send_image(render.render_songs(matches, f"匹配「{keyword}」，请输入更完整的关键词"))
+            return None
+
+        records = [
+            record
+            for level in range(4)
+            if (record := self.db.GetSongBest(self.player_id, song_id, level)) is not None
+        ]
+        if not records:
+            return f"{TITLE} - Phigros 查分\n    - 您还没有 {song_id} 的成绩。"
+
+        await self.send_image(
+            render.render_song(
+                nickname=(self.Player() or {}).get("nickname") or "未知玩家",
+                song_id=song_id,
+                records=records,
+                difficulty=SONGS.constants(song_id),
+            )
+        )
+        return None
+
+    async def CmdBoard(self, rest: str) -> str | None:
+        """Show the leaderboard for one song and difficulty."""
+        words = rest.split()
+        if not words:
+            return f"{TITLE} - Phigros 查分\n    - 用法：pgr board <曲名关键词> [难度]"
+
+        level = 2  # IN by default
+        if len(words) > 1 and words[-1] in LEVEL_KEYWORDS:
+            level = LEVEL_KEYWORDS[words[-1]]
+            words = words[:-1]
+
+        keyword = " ".join(words)
+        song_id, matches = SONGS.resolve(keyword)
+        if song_id is None:
+            if not matches:
+                return f"{TITLE} - Phigros 查分\n    - 没有找到包含「{keyword}」的曲目。"
+            await self.send_image(render.render_songs(matches, f"匹配「{keyword}」，请输入更完整的关键词"))
+            return None
+
+        rows = self.db.GetSongLeaderboard(song_id, level, limit=20)
+        if not rows:
+            return f"{TITLE} - Phigros 查分\n    - {song_id} [{LEVEL_NAMES[level]}] 还没有人打过。"
+
+        await self.send_image(render.render_board(song_id, level, rows))
+        return None
+
+    async def CmdProgress(self, rest: str) -> str | None:
+        """Show clear / FC / AP counts per difficulty."""
         error = self.RequireBinding()
         if error:
             return error
 
         if self.db.GetLatestSnapshot(self.player_id) is None:
-            return "TLoH Bot - Phigros 查分\n    - 还没有成绩数据，请先发送 ^pgr update。"
+            return f"{TITLE} - Phigros 查分\n    - 还没有成绩数据，请先发送 pgr update。"
 
-        best19 = self.db.ComputeBest19(self.player_id)
-        progress = self.db.GetProgress(self.player_id)
-
-        lines = [f"    - RKS：{best19['rks']:.4f}"]
-
-        if best19["phi"]:
-            phi = best19["phi"]
-            lines.append(
-                f"    - φ：{phi['song_id']} [{phi['level_name']}] 定数 {phi['difficulty']}"
+        await self.send_image(
+            render.render_progress(
+                self.db.GetProgress(self.player_id),
+                (self.Player() or {}).get("nickname") or "未知玩家",
             )
-        else:
-            lines.append("    - φ：暂无满分成绩")
+        )
+        return None
 
-        lines.append("")
-        lines.append("    - B19：")
-        for index, entry in enumerate(self.db.GetBest19List(self.player_id), start=1):
-            rks = entry["rks"] if entry["rks"] is not None else 0.0
-            lines.append(
-                f"    - {index:>2}. {entry['song_id']} [{entry['level_name']}] "
-                f"    - {rks:.4f}  {entry['accuracy']:.2f}%"
-            )
-
-        if progress:
-            lines.append("")
-            lines.append("    - 进度：")
-            for row in progress:
-                lines.append(
-                    f"    - {row['level_name']} 已游玩 {row['played']}  "
-                    f"    - FC {row['full_combo']}  AP {row['all_perfect']}"
-                )
-
-        return "TLoH Bot - Phigros 查分\n" + "\n".join(lines)
-
-    async def CmdSong(self, rest: str) -> str:
-        """Show the player's best score for songs matching a keyword."""
-        error = self.RequireBinding()
-        if error:
-            return error
-
-        keyword = rest.strip()
-        if not keyword:
-            return "TLoH Bot - Phigros 查分\n    - 用法：pgr song <曲名关键词>"
-
-        matches = self.db.FindSongs(keyword, limit=SEARCH_LIMIT)
-        if not matches:
-            return f"TLoH Bot - Phigros 查分\n    - 没有找到包含「{keyword}」的曲目。"
-
-        if len(matches) > 1 and keyword not in matches:
-            lines = [f"    - 匹配到 {len(matches)} 首曲目，请输入更完整的关键词："]
-            lines.extend(f"  {song_id}" for song_id in matches)
-            return "\n".join(lines)
-
-        lines = []
-        for song_id in matches[:1]:
-            lines.append(song_id)
-            for level, level_name in enumerate(LEVEL_NAMES):
-                record = self.db.GetSongBest(self.player_id, song_id, level)
-                if record is None:
-                    continue
-
-                rks = record["rks"] if record["rks"] is not None else 0.0
-                marks = "AP" if record["score"] == 1000000 else ("FC" if record["full_combo"] else "")
-                lines.append(
-                    f"    -   {level_name}  定数 {record['difficulty']}  "
-                    f"    - {record['score']}  {record['accuracy']:.2f}%  {rks:.4f} {marks}"
-                )
-
-        return "TLoH Bot - Phigros 查分\n" + "\n".join(lines)
-
-    async def CmdBoard(self, rest: str) -> str:
-        """Show the leaderboard for songs matching a keyword."""
-        keyword = rest.strip()
-        if not keyword:
-            return "TLoH Bot - Phigros 查分\n    - 用法：^pgr board <曲名关键词> [难度]"
-
-        level = 2
-        words = keyword.split()
-        if len(words) > 1 and words[-1].upper() in LEVEL_NAMES:
-            level = LEVEL_NAMES.index(words[-1].upper())
-            keyword = " ".join(words[:-1])
-
-        matches = self.db.FindSongs(keyword, limit=1)
-        if not matches:
-            return f"TLoH Bot - Phigros 查分\n    - 没有找到包含「{keyword}」的曲目。"
-
-        song_id = matches[0]
-        rows = self.db.GetSongLeaderboard(song_id, level, limit=20)
-        if not rows:
-            return f"TLoH Bot - Phigros 查分\n    - {song_id} [{LEVEL_NAMES[level]}] 还没有人打过。"
-
-        lines = [f"    - {song_id} [{LEVEL_NAMES[level]}] 排行榜"]
-        for index, row in enumerate(rows, start=1):
-            name = row["nickname"] or row["player_id"]
-            rks = row["rks"] if row["rks"] is not None else 0.0
-            marks = "AP" if row["score"] == 1000000 else ("FC" if row["full_combo"] else "")
-            lines.append(
-                f"    - {index:>2}. {name}  {row['score']}  {row['accuracy']:.2f}%  {rks:.4f} {marks}"
-            )
-
-        return "TLoH Bot - Phigros 查分\n" + "\n".join(lines)
-
-    async def CmdHistory(self, rest: str) -> str:
+    async def CmdHistory(self, rest: str) -> str | None:
         """Show how the stored RKS changed over time."""
         error = self.RequireBinding()
         if error:
             return error
 
-        history = self.db.GetRksHistory(self.player_id, limit=30)
-        if not history:
-            return "TLoH Bot - Phigros 查分\n    - 还没有历史记录，请先发送 ^pgr update。"
+        points = self.db.GetRksHistory(self.player_id, limit=30)
+        if not points:
+            return f"{TITLE} - Phigros 查分\n    - 还没有历史记录，请先发送 pgr update。"
 
-        lines = ["    - RKS 变化："]
-        previous = None
-        for point in history:
-            delta = ""
-            if previous is not None:
-                change = point["rks"] - previous
-                delta = f"   -   ({change:+.4f})" if abs(change) > 1e-9 else ""
-            lines.append(f"    -   {point['captured_at'][:10]}  {point['rks']:.4f}{delta}")
-            previous = point["rks"]
+        await self.send_image(render.render_history(points))
+        return None
 
-        return "TLoH Bot - Phigros 查分\n" + "\n".join(lines)
+    # -------------------------------------------------------------------------
+    # Song commands
+    # -------------------------------------------------------------------------
+
+    async def CmdInfo(self, rest: str) -> str | None:
+        """Show metadata and chart constants for one song."""
+        keyword = rest.strip()
+        if not keyword:
+            return f"{TITLE} - Phigros 查分\n    - 用法：pgr info <曲名关键词>"
+
+        song_id, matches = SONGS.resolve(keyword)
+        if song_id is None:
+            if not matches:
+                return f"{TITLE} - Phigros 查分\n    - 没有找到包含「{keyword}」的曲目。"
+            await self.send_image(render.render_songs(matches, f"匹配「{keyword}」，请输入更完整的关键词"))
+            return None
+
+        await self.send_image(
+            render.render_info(song_id, SONGS.fields(song_id), SONGS.constants(song_id))
+        )
+        return None
+
+    async def CmdSearch(self, rest: str) -> str | None:
+        """List songs matching a keyword."""
+        keyword = rest.strip()
+        if not keyword:
+            return f"{TITLE} - Phigros 查分\n    - 用法：pgr search <曲名关键词>"
+
+        matches = SONGS.search(keyword, limit=30)
+        await self.send_image(render.render_songs(matches, f"搜索「{keyword}」，共 {len(matches)} 首"))
+        return None
+
+    async def CmdRandom(self, rest: str) -> str | None:
+        """Pick a random song and show its constants."""
+        song_id = SONGS.random_id()
+        await self.send_image(
+            render.render_info(song_id, SONGS.fields(song_id), SONGS.constants(song_id))
+        )
+        return None
 
 
 pgr_cmd = on_command("pgr", priority=10)
