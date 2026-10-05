@@ -1,3 +1,27 @@
+from nonebot import on_command
+from nonebot.adapters import Message
+from nonebot.adapters.onebot.v11 import Bot as v11bot
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent
+from nonebot.internal.matcher import Matcher
+from nonebot.params import CommandArg
+
+import PhigrosScoreLibrary as psl
+from plugins.phigrosScoringController import render
+from plugins.phigrosScoringController.database import (
+    LEVEL_NAMES,
+    PhigrosUserdataDatabase,
+    SnapshotSaveResult,
+    make_player_id,
+)
+from plugins.phigrosScoringController.songs import SongInfo
+from plugins.undefiendControllers.defines import send_image_msg
+from plugins.userInfoController.data import _safe_read_json, _safe_write_json
+from toolsbot.services import _error, _info
+
+from typing import Optional
+from plugins.userInfoController.data import *
+from plugins.userInfoController.shop import *
+
 # =============================================================================
 # User class
 # =============================================================================
