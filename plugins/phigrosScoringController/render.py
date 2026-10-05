@@ -54,6 +54,26 @@ LEVEL_NAMES = ("EZ", "HD", "IN", "AT")
 #: Stamped on the bottom-right of the score sheet.
 COPYRIGHT = "(C) Copyright 2026 TLoH-Bot Contributors and BL-BlueLighting"
 
+#: Reaction shown next to an AP / FC on a hard chart, picked at random.
+PRAISE_PHRASES = ("吓哭了", "大神啊教我", "/bx")
+
+#: Colour of that reaction.
+PRAISE_COLOR = (226, 62, 92)
+
+#: RKS at or above which the bottom quip changes.
+QUIP_RKS_THRESHOLD = 16.5
+
+#: Bottom quip for a very high RKS.
+QUIP_HIGH_RKS = ":: 多打歌...等等？rks 这么高？"
+
+#: Bottom quip everyone else gets.
+QUIP_DEFAULT = ":: 多打歌。"
+
+
+def earns_praise(level: int, constant: float) -> bool:
+    """Whether a clear on this chart is worth a reaction: AT 17+ and IN 16+."""
+    return (level == 3 and constant >= 17.0) or (level == 2 and constant >= 16.0)
+
 #: Cell sizes for the B19 grid.
 CELL_W = 560
 CELL_H = 172
@@ -276,7 +296,7 @@ def render_b19(
     rows = max(1, -(-len(best) // COLUMNS))  # ceil
     width = MARGIN * 2 + COLUMNS * CELL_W + (COLUMNS - 1) * CELL_GAP
     grid_h = rows * CELL_H + (rows - 1) * CELL_GAP
-    height = HEADER_H + MARGIN + grid_h + MARGIN + 56
+    height = HEADER_H + MARGIN + grid_h + MARGIN + 88
 
     image = _background(width, height)
     draw = ImageDraw.Draw(image)
@@ -290,7 +310,7 @@ def render_b19(
         top = HEADER_H + MARGIN + row * (CELL_H + CELL_GAP)
         _draw_cell(image, draw, left, top, index + 1, entry)
 
-    _draw_b19_footer(draw, height, progress, width)
+    _draw_b19_footer(draw, height, progress, width, rks)
     return _save(image, "b19")
 
 
@@ -399,15 +419,28 @@ def _draw_cell(
     draw.text((left + CELL_W - 18, top + CELL_H - 22), badge,
               font=badge_font, fill=level_color, anchor="rm")
 
+    # An AP / FC on a hard chart gets a reaction, right-aligned on the score line.
+    if earns_praise(level, constant) and (score >= 1000000 or entry.get("full_combo")):
+        draw.text((text_right, top + 124), random.choice(PRAISE_PHRASES),
+                  font=_load_font(18, bold=True), fill=PRAISE_COLOR, anchor="rm")
+
 
 def _draw_b19_footer(
     draw: ImageDraw.ImageDraw,
     height: int,
     progress: Optional[Sequence[dict[str, Any]]],
     width: int,
+    rks: Optional[float],
 ) -> None:
-    """A thin summary line on the left and the copyright on the right."""
+    """The closing quip, a summary line and the copyright."""
     baseline = height - MARGIN + 6
+
+    quip = (
+        QUIP_HIGH_RKS
+        if rks is not None and rks >= QUIP_RKS_THRESHOLD
+        else QUIP_DEFAULT
+    )
+    draw.text((MARGIN, baseline - 32), quip, font=_load_font(18), fill=MUTED, anchor="lm")
 
     if progress:
         played = sum(int(row.get("played") or 0) for row in progress)
