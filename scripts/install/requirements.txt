@@ -34,7 +34,7 @@ nonechat==0.6.1
 Nuitka==2.7.14
 ordered-set==4.1.0
 packaging==25.0
-pillow==12.3.0
+pillow==13.0.0
 pipx==1.7.1
 platformdirs==4.4.0
 propcache==0.3.2
